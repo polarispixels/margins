@@ -7,9 +7,10 @@ const game = new Phaser.Game({
   parent: 'game',
   backgroundColor: COLORS.desk,
   scale: {
-    // Draw at a fixed 960x540 and scale it up/down to fit the screen,
-    // keeping the aspect ratio. Any leftover space shows the "desk" color.
-    mode: Phaser.Scale.FIT,
+    // EXPAND scales the game to fill the whole screen. The 960x540 area is
+    // always visible; on a wider (or taller) screen the game grows to show
+    // extra page instead of leaving bars. GameScene handles the extra space.
+    mode: Phaser.Scale.EXPAND,
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width: WIDTH,
     height: HEIGHT,

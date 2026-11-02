@@ -1,7 +1,7 @@
 // The layout of the page. Platforms are described by which ruled line they
 // sit on (0 = top line) and where they start and end horizontally.
 
-import { PAPER, WIDTH } from './config.js';
+import { PAPER, PAGE_MAX_WIDTH } from './config.js';
 
 // The y position of ruled line number `index`.
 export function lineY(index) {
@@ -9,9 +9,10 @@ export function lineY(index) {
 }
 
 export const LEVEL = {
-  // The floor runs the full width of the page, from the margin to the edge.
-  // It's solid; the other platforms are one-way (you can jump up through them).
-  floor: { line: 12, from: PAPER.marginX, to: WIDTH },
+  // The floor runs the full width of the page, from the margin to the edge
+  // (however wide the screen is). It's solid; the other platforms are one-way
+  // (you can jump up through them).
+  floor: { line: 12, from: PAPER.marginX, to: PAGE_MAX_WIDTH },
 
   platforms: [
     { line: 9, from: 190, to: 360 },

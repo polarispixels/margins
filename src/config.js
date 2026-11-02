@@ -1,8 +1,12 @@
 // Every tunable number and color in one place. Tweak these to change the feel.
 
-// The game is drawn at this size, then scaled to fit the screen (16:9 landscape).
+// The level is designed for this area, which is always fully visible (16:9 landscape).
+// Screens of other shapes see extra page beyond it; see GameScene.fitToScreen().
 export const WIDTH = 960;
 export const HEIGHT = 540;
+
+// The paper (and the floor) is drawn this wide so even very wide screens are covered.
+export const PAGE_MAX_WIDTH = 2400;
 
 export const COLORS = {
   desk: 0x5b4a3a,

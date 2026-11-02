@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Margins Docs</title>
+<meta name="description" content="Developer and agent documentation for Margins: a pencil-drawn stick figure platformer on notebook paper, built with Phaser 4 and Vite.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f7f3e8; --ink: #2f2f2f; --soft: #5e5a52; --rule: #c9dcef;
+    --margin: #e08080; --coffee: #8a5a2b; --code-bg: #ece6d6; --line: #ddd5c2;
+    --link: #2c64a8; --desk: #5b4a3a;
+    --hand: 'Patrick Hand', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--desk); }
+  body {
+    margin: 0 auto; max-width: 960px; min-height: 100vh;
+    color: var(--ink);
+    font: 17px/28px -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    /* Lined paper: ruled lines every 28px (matching line-height) plus a red margin. */
+    background:
+      linear-gradient(90deg, transparent 63px, var(--margin) 63px, var(--margin) 65px, transparent 65px),
+      repeating-linear-gradient(180deg, var(--paper) 0 27px, var(--rule) 27px 28px);
+    box-shadow: 0 0 40px rgba(0,0,0,0.35);
+  }
+  .page { padding: 28px 28px 84px 92px; }
+  @media (max-width: 640px) {
+    body { background:
+      linear-gradient(90deg, transparent 31px, var(--margin) 31px, var(--margin) 33px, transparent 33px),
+      repeating-linear-gradient(180deg, var(--paper) 0 27px, var(--rule) 27px 28px); }
+    .page { padding: 28px 16px 84px 48px; }
+  }
+  h1, h2, h3 { font-family: var(--hand); font-weight: 400; line-height: 1.15; }
+  h1 { font-size: 3.2rem; margin: 20px 0 4px; }
+  h2 { font-size: 2.1rem; margin: 56px 0 8px; }
+  h3 { font-size: 1.5rem; margin: 32px 0 4px; }
+  /* A pencil underline for section headings. */
+  h2::after {
+    content: ""; display: block; height: 3px; width: 160px; margin-top: 4px;
+    background: var(--ink); border-radius: 2px; opacity: 0.75; transform: rotate(-0.6deg);
+  }
+  .tagline { font-family: var(--hand); font-size: 1.45rem; color: var(--soft); margin: 0 0 16px; }
+  a { color: var(--link); }
+  .buttons a {
+    display: inline-block; margin: 4px 10px 4px 0; padding: 4px 18px;
+    font-family: var(--hand); font-size: 1.3rem; text-decoration: none; color: var(--ink);
+    border: 2.5px solid var(--ink); border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    background: rgba(255,255,255,0.5);
+  }
+  .buttons a.play { background: #fff6c9; }
+  .buttons a:hover { transform: rotate(-1.5deg); }
+  nav.toc {
+    background: rgba(255,255,255,0.6); border: 1px dashed var(--soft); border-radius: 6px;
+    padding: 12px 22px; margin: 28px 0;
+  }
+  nav.toc ol { columns: 2; margin: 4px 0 0; padding-left: 22px; }
+  @media (max-width: 640px) { nav.toc ol { columns: 1; } }
+  code {
+    font: 0.88em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--code-bg); padding: 1px 5px; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 16px; overflow-x: auto; line-height: 1.5;
+  }
+  /* Long inline code and URLs may break anywhere so they don't push the page sideways on phones. */
+  p code, li code, td code, a { overflow-wrap: anywhere; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; background: rgba(255,255,255,0.6); }
+  .table-wrap { overflow-x: auto; }
+  th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; line-height: 1.45; }
+  th { font-family: var(--hand); font-size: 1.15rem; font-weight: 400; background: rgba(0,0,0,0.04); }
+  .note {
+    background: #fff6c9; border-left: 4px solid #e2c34a; padding: 10px 16px; margin: 16px 0;
+    line-height: 1.55; transform: rotate(-0.3deg);
+  }
+  .tree { line-height: 1.45; }
+  footer { margin-top: 64px; font-family: var(--hand); font-size: 1.2rem; color: var(--soft); }
+  svg { max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>Margins</h1>
+<p class="tagline">A stick figure lives on a sheet of notebook paper. Developer &amp; agent documentation.</p>
+<div class="buttons">
+  <a class="play" href="../">▶ Play it</a>
+  <a href="https://github.com/polarispixels/margins">Source on GitHub</a>
+</div>
+
+<nav class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#concept">Concept</a></li>
+    <li><a href="#controls">Controls</a></li>
+    <li><a href="#running">Running it</a></li>
+    <li><a href="#structure">Project structure</a></li>
+    <li><a href="#loop">How a frame works</a></li>
+    <li><a href="#boil">The boil</a></li>
+    <li><a href="#physics">Physics, platforms &amp; the wall</a></li>
+    <li><a href="#figure">The stick figure</a></li>
+    <li><a href="#screens">Fitting any screen</a></li>
+    <li><a href="#touch">Touch controls</a></li>
+    <li><a href="#level">Editing the level</a></li>
+    <li><a href="#tuning">Tuning reference</a></li>
+    <li><a href="#deploy">Deployment</a></li>
+    <li><a href="#working">Working on Margins</a></li>
+  </ol>
+</nav>
+
+<h2 id="concept">Concept</h2>
+<p>
+  Everything on the page is drawn in pencil and <strong>boils</strong>: lines redraw with a small
+  random wobble several times a second, like a flipbook. The light blue ruled lines are platforms,
+  the red margin line on the left is a wall, and reaching the coffee ring stain shows
+  <em>"Page complete"</em> and starts the page over.
+</p>
+<p>
+  Margins is a small proof of concept, built for learning and fun. It uses
+  <a href="https://phaser.io">Phaser 4</a> (with Arcade physics), <a href="https://vite.dev">Vite</a>,
+  and plain JavaScript. There are <strong>no image assets</strong>: every line is drawn in code with
+  <code>Phaser.GameObjects.Graphics</code>. It's designed for <strong>phone landscape first</strong>.
+</p>
+
+<h2 id="controls">Controls</h2>
+<div class="table-wrap"><table>
+  <tr><th>Action</th><th>Desktop</th><th>Phone (landscape)</th></tr>
+  <tr><td>Walk</td><td>Arrow keys, or A / D</td><td>◀ ▶ buttons, bottom left</td></tr>
+  <tr><td>Jump</td><td>Space (Up arrow and W also work)</td><td>▲ button, bottom right</td></tr>
+</table></div>
+<p>On phones you can hold a direction and tap jump at the same time, and slide your thumb between ◀ and ▶.</p>
+
+<h2 id="running">Running it</h2>
+<pre><code>npm install
+npm run dev      # http://localhost:5173, plus a "Network" address for phones
+npm run build    # production build into dist/
+npm run preview  # serve the built dist/ folder</code></pre>
+
+<h3>On a phone over home Wi-Fi</h3>
+<p>
+  <code>vite.config.js</code> sets <code>server.host: true</code>, so the dev server listens on the
+  network and prints a <em>Network</em> URL. Open <code>http://&lt;computer-ip&gt;:5173</code> on the
+  phone and hold it sideways.
+</p>
+<div class="note">
+  <strong>WSL2:</strong> with WSL's default NAT networking, the phone can't reach the 172.x address
+  Vite prints. Forward the port once from an <em>admin</em> PowerShell, then use the Windows
+  computer's LAN IP from <code>ipconfig</code> (the adapter with a default gateway):
+<pre><code>$wsl = (wsl hostname -I).Trim().Split(" ")[0]
+netsh interface portproxy add v4tov4 listenport=5173 listenaddress=0.0.0.0 connectport=5173 connectaddress=$wsl
+New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 -Protocol TCP -Action Allow</code></pre>
+  The WSL address can change after a reboot; rerun the <code>netsh</code> line if the phone stops connecting.
+  The Windows network should be set to <em>Private</em>.
+</div>
+
+<h2 id="structure">Project structure</h2>
+<pre class="tree"><code>margins/
+├── index.html              Page shell, mobile viewport, "turn your phone sideways" hint
+├── vite.config.js          LAN dev server, relative base path for GitHub Pages
+├── public/docs/index.html  This page (copied as-is into dist/docs/)
+├── .github/workflows/deploy.yml   Build + deploy to GitHub Pages on push to main
+└── src/
+    ├── main.js             Creates the Phaser.Game: size, scaling, physics, input
+    ├── config.js           Every tunable number and color
+    ├── level.js            Platform layout and goal position
+    ├── pencil.js           Seeded random + wobbly pencil line/circle helpers (the boil)
+    ├── scenes/
+    │   └── GameScene.js    Builds the page, reads input, runs the loop, fits the screen
+    └── objects/
+        ├── Paper.js        Static background: paper, ruled lines, margin, hole punches
+        ├── Platforms.js    Static physics bodies + boiling pencil traces
+        ├── StickFigure.js  Player physics, movement, walk cycle, squash and stretch
+        ├── CoffeeRing.js   The goal
+        └── TouchControls.js  On-screen buttons for phones</code></pre>
+
+<h2 id="loop">How a frame works</h2>
+<p>There is a single scene, <code>GameScene</code>. Phaser calls two of its methods:</p>
+<ul>
+  <li><strong><code>create()</code></strong> runs when the scene starts (and on every restart). It draws the
+    paper, builds the platforms, goal, player, and touch buttons, adds the player–platform collider,
+    sets up the keyboard, and fits the camera to the screen. Draw order is creation order, so later
+    objects appear on top.</li>
+  <li><strong><code>update(time, delta)</code></strong> runs every frame:
+    <ol>
+      <li><code>readInput()</code> merges keyboard and touch into one <code>{ left, right, jump }</code> object.
+        <code>jump</code> is true only on the frame the key or button is first pressed.</li>
+      <li><code>player.update(input, dt)</code> sets velocities and animation state. Arcade physics then
+        moves the body and resolves collisions.</li>
+      <li>If the player's center is inside the coffee ring, <code>completePage()</code> pauses physics,
+        writes "Page complete", and calls <code>scene.restart()</code> two seconds later.</li>
+      <li>Every boiling object redraws itself: platforms, goal, player, touch buttons.</li>
+    </ol>
+  </li>
+</ul>
+
+<h2 id="boil">The boil</h2>
+<p>
+  The flipbook look comes from <code>src/pencil.js</code>. Every pencil line is drawn as a handful of short
+  segments, each nudged sideways by a small random amount, in two passes (one darker, one lighter) to
+  look like a real pencil stroke.
+</p>
+<p>
+  The important trick: if the randomness came from <code>Math.random()</code>, every frame would look
+  different and the lines would buzz like TV static. Instead, the random numbers come from a tiny
+  <strong>seeded</strong> generator (mulberry32), and the seed only changes every
+  <code>BOIL.intervalMs</code> (110 ms, about 9 times a second):
+</p>
+<pre><code>// Which boil "frame" are we on? Changes every BOIL.intervalMs.
+export function boilFrame(timeMs) {
+  return Math.floor(timeMs / BOIL.intervalMs);
+}
+
+// An rng for one object on the current boil frame. `id` keeps different
+// objects from wobbling identically.
+export function boilRng(timeMs, id) {
+  return makeRng(boilFrame(timeMs) * 7919 + id * 104729);
+}</code></pre>
+<p>
+  Same seed means the same sequence of random numbers, which means the same wobble. So each object can
+  safely redraw every frame (the stick figure has to, because it moves), and its lines hold perfectly
+  still until the next boil tick, when they all jump to a new shape at once.
+</p>
+<p>The helpers you can call:</p>
+<div class="table-wrap"><table>
+  <tr><th>Function</th><th>What it does</th></tr>
+  <tr><td><code>boilRng(time, id)</code></td><td>Returns a random-number function for this object on the current boil frame.</td></tr>
+  <tr><td><code>pencilLine(g, rng, x1, y1, x2, y2, opts)</code></td><td>Wobbly line. Options: <code>color</code>, <code>width</code>, <code>alpha</code>, <code>wobble</code> (px), <code>passes</code>.</td></tr>
+  <tr><td><code>pencilCircle(g, rng, cx, cy, r, opts)</code></td><td>Wobbly closed loop. Same options plus <code>points</code>.</td></tr>
+</table></div>
+<p>
+  The paper itself doesn't boil: real notebook paper is printed, not hand-drawn. Platforms are traced
+  over their blue ruled line in boiling pencil, with small end ticks so you can tell which line
+  segments are solid.
+</p>
+
+<h2 id="physics">Physics, platforms &amp; the wall</h2>
+<p>
+  Margins uses Phaser's <strong>Arcade physics</strong>: simple axis-aligned boxes with gravity
+  (1400 px/s²). Nothing physical has a sprite. Each body is attached to a
+  <code>Zone</code>, an invisible rectangle, and the visuals are drawn separately in pencil.
+</p>
+<ul>
+  <li><strong>Platforms</strong> are zones in a <em>static group</em>: bodies that never move. Each one's top
+    edge sits exactly on a ruled line and is 10 px thick below it.</li>
+  <li><strong>One-way platforms:</strong> every platform except the floor turns off collision on its bottom
+    and sides (<code>body.checkCollision.down = false</code>, and the same for <code>left</code> and
+    <code>right</code>), so you can jump up through it from below and land on top.</li>
+  <li><strong>The floor</strong> is solid, runs from the margin to the far edge of the page, and sits on
+    ruled line 12 (y = 504).</li>
+  <li><strong>The wall</strong> is a tall static zone just left of the red margin line, so the figure stops
+    right at the line.</li>
+  <li><strong>World bounds</strong> keep the player on screen. They're updated whenever the screen size changes.</li>
+</ul>
+
+<h2 id="figure">The stick figure</h2>
+<p>
+  <code>StickFigure</code> owns a 20 × 60 px physics box and a <code>Graphics</code> object it clears and
+  redraws every frame. The figure is described in <em>figure space</em>: <code>u</code> to the right,
+  <code>v</code> up from the feet. A <code>toScreen(u, v)</code> helper turns that into screen coordinates,
+  mirroring <code>u</code> for the facing direction and applying squash and stretch.
+</p>
+<svg viewBox="40 48 500 160" width="500" role="img" aria-label="Stick figure proportions: hip at 26 px, shoulder at 42, neck at 46, head radius 8. Limb angles are measured from straight down.">
+  <g fill="none" stroke="#2f2f2f" stroke-width="3" stroke-linecap="round">
+    <line x1="120" y1="148" x2="120" y2="88"/>
+    <line x1="120" y1="148" x2="104" y2="196"/>
+    <line x1="120" y1="148" x2="136" y2="196"/>
+    <line x1="120" y1="104" x2="96" y2="140"/>
+    <line x1="120" y1="104" x2="144" y2="140"/>
+    <circle cx="120" cy="72" r="16"/>
+  </g>
+  <g stroke="#2c64a8" stroke-width="1.2" stroke-dasharray="4 4">
+    <line x1="60" y1="200" x2="200" y2="200"/>
+    <line x1="150" y1="148" x2="200" y2="148"/>
+    <line x1="150" y1="104" x2="200" y2="104"/>
+    <line x1="150" y1="88" x2="200" y2="88"/>
+  </g>
+  <g font-family="Patrick Hand, Comic Sans MS, cursive" font-size="17" fill="#2f2f2f">
+    <text x="206" y="204">feet (v = 0)</text>
+    <text x="206" y="152">hip (v = 26)</text>
+    <text x="206" y="108">shoulder (v = 42)</text>
+    <text x="206" y="84">neck (v = 46), head radius 8</text>
+    <text x="330" y="150" fill="#5e5a52">legs 27 px, arms 20 px</text>
+    <text x="330" y="174" fill="#5e5a52">angles from straight down</text>
+  </g>
+</svg>
+<h3>Walk cycle</h3>
+<p>
+  While moving on the ground, <code>walkPhase</code> advances (<code>dt × 14</code>). Each leg's angle is a
+  sine wave of the phase (plus a small base spread so the legs don't overlap when standing), and the
+  arms swing opposite to the legs. When the figure stops, the phase resets to standing.
+</p>
+<h3>Jumping, squash and stretch</h3>
+<ul>
+  <li><strong>Take-off:</strong> velocity is set to −620 px/s, and the figure stretches to 0.8 × 1.25 (thin and tall).</li>
+  <li><strong>In the air:</strong> a fixed pose with legs apart and arms up, slightly different rising and falling.</li>
+  <li><strong>Landing</strong> (on the ground now, not last frame): squash to 1.3 × 0.7 (wide and short).</li>
+  <li>Both scales ease back to 1 using <code>1 − e<sup>−12·dt</sup></code>, which behaves the same at any frame rate.</li>
+</ul>
+<p>The head uses the average of the two scales so it stays round instead of turning into an egg.</p>
+
+<h2 id="screens">Fitting any screen</h2>
+<p>
+  The level is laid out in a <strong>960 × 540</strong> area (16:9) that is always fully visible. The game
+  uses <code>Phaser.Scale.EXPAND</code>: it scales that area to the screen, then grows the game in
+  whichever direction has room left over, so there are never black bars.
+</p>
+<ul>
+  <li><strong>Wider screens</strong> (most phones are about 19.5:9): the page simply continues to the right.
+    The paper and floor are drawn <code>PAGE_MAX_WIDTH</code> (2400 px) wide to cover any screen.</li>
+  <li><strong>Taller screens</strong> (tablets): <code>GameScene.fitToScreen()</code> scrolls the camera up so the
+    floor stays at the bottom, and the extra paper appears above the top ruled line as a blank header.</li>
+  <li><code>fitToScreen()</code> also resets the physics world bounds. It runs at start and on every Phaser
+    <code>resize</code> event (rotation, the mobile address bar hiding, a resized window). The listener is
+    removed on scene shutdown so restarts don't stack up duplicates.</li>
+  <li>Anything pinned to the <em>screen</em> rather than the page (the touch buttons, "Page complete") uses
+    <code>this.scale.width/height</code> and <code>setScrollFactor(0)</code>.</li>
+</ul>
+
+<h2 id="touch">Touch controls</h2>
+<p>
+  <code>TouchControls</code> only appears on touch devices (<code>game.device.input.touch</code>). Instead of
+  listening for button press and release events, every frame it loops over all of Phaser's pointers
+  and checks which buttons a finger is currently over (with a hit area 1.25× the drawn circle). That
+  handles multi-touch and sliding a thumb between buttons with no extra bookkeeping.
+  <code>main.js</code> sets <code>input.activePointers: 3</code> so several fingers are tracked at once.
+</p>
+<p>
+  The jump button is converted into a single-frame press in <code>GameScene.readInput()</code> (down now,
+  not down last frame), so holding it doesn't bunny-hop.
+</p>
+
+<h2 id="level">Editing the level</h2>
+<p>The whole layout lives in <code>src/level.js</code>. Platforms are described by ruled line, not pixels:</p>
+<pre><code>platforms: [
+  { line: 9, from: 190, to: 360 },   // line 9 is y = 72 + 9 × 36 = 396
+  { line: 6, from: 400, to: 560 },
+  ...
+],
+goal: { x: 860, line: 2 },</code></pre>
+<p>
+  Line 0 is the top ruled line (y = 72), lines are 36 px apart, and the floor is line 12. To add a
+  platform, add one entry; <code>Platforms</code> creates its body and pencil trace automatically.
+</p>
+<h3>How far can the figure jump?</h3>
+<div class="table-wrap"><table>
+  <tr><th>Measure</th><th>Value</th><th>Where it comes from</th></tr>
+  <tr><td>Jump height</td><td>≈ 137 px, so <strong>up to 3 ruled lines</strong></td><td>620² ÷ (2 × 1400)</td></tr>
+  <tr><td>Air time (same height)</td><td>≈ 0.89 s</td><td>2 × 620 ÷ 1400</td></tr>
+  <tr><td>Horizontal reach (same height)</td><td>≈ 210 px</td><td>240 px/s × 0.89 s</td></tr>
+</table></div>
+<p>
+  Climbing 3 lines uses almost the whole jump, so keep horizontal gaps small (40 px or less) for
+  those. The current route: floor → line 9 → line 6 → line 3 → line 2 (goal). Keep the goal reachable
+  inside the 960 × 540 area, since on a 16:9 screen nothing outside it is visible.
+</p>
+
+<h2 id="tuning">Tuning reference</h2>
+<p>All of these live in <code>src/config.js</code>.</p>
+<div class="table-wrap"><table>
+  <tr><th>Setting</th><th>Default</th><th>Effect</th></tr>
+  <tr><td><code>BOIL.intervalMs</code></td><td>110</td><td>Time between boil ticks. Lower is jittery and frantic; higher is calmer.</td></tr>
+  <tr><td><code>BOIL.wobble</code></td><td>1.4</td><td>Pixels of sideways jitter on most lines.</td></tr>
+  <tr><td><code>PLAYER.runSpeed</code></td><td>240</td><td>Walking speed in px/s.</td></tr>
+  <tr><td><code>PLAYER.jumpSpeed</code></td><td>620</td><td>Take-off velocity. Changes jump height (see above).</td></tr>
+  <tr><td><code>PLAYER.gravity</code></td><td>1400</td><td>Downward acceleration in px/s².</td></tr>
+  <tr><td><code>PLAYER.startX / startY</code></td><td>180 / 400</td><td>Where each page starts.</td></tr>
+  <tr><td><code>PAPER.lineSpacing</code></td><td>36</td><td>Distance between ruled lines. Moves every platform.</td></tr>
+  <tr><td><code>PAPER.marginX</code></td><td>110</td><td>The red margin line and the wall.</td></tr>
+  <tr><td><code>TOUCH.buttonRadius / alpha</code></td><td>46 / 0.55</td><td>Size and opacity of the phone buttons.</td></tr>
+  <tr><td><code>COLORS.*</code></td><td>—</td><td>Paper, ruled line, margin, pencil, and coffee colors.</td></tr>
+</table></div>
+
+<h3>Debugging</h3>
+<ul>
+  <li>Set <code>debug: true</code> under <code>physics.arcade</code> in <code>src/main.js</code> to see the physics boxes.</li>
+  <li>In dev mode the game is exposed as <code>window.game</code>. Try
+    <code>game.scene.getScene('GameScene').player</code> in the browser console.</li>
+</ul>
+
+<h2 id="deploy">Deployment</h2>
+<p>
+  Every push to <code>main</code> runs <code>.github/workflows/deploy.yml</code>: <code>npm ci</code>,
+  <code>npm run build</code>, then publishes <code>dist/</code> to GitHub Pages. It can also be run by hand
+  from the repository's Actions tab.
+</p>
+<ul>
+  <li>Game: <a href="https://polarispixels.github.io/margins/">polarispixels.github.io/margins/</a></li>
+  <li>Docs (this page): <a href="https://polarispixels.github.io/margins/docs/">polarispixels.github.io/margins/docs/</a></li>
+</ul>
+<p>
+  <code>vite.config.js</code> uses <code>base: './'</code> (relative asset paths), so the same build works at
+  the <code>/margins/</code> sub-path and at <code>localhost</code>. This page lives in
+  <code>public/docs/</code>, which Vite copies into the build untouched.
+</p>
+
+<h2 id="working">Working on Margins</h2>
+<ul>
+  <li>It's an MVP on purpose. No sound, scoring, or extra levels unless they're asked for.</li>
+  <li>Keep magic numbers in <code>config.js</code>, and keep each file about one thing.</li>
+  <li>The code is meant to be read by someone learning: short functions, clear names, and comments that explain <em>why</em>.</li>
+  <li>Test on a phone in landscape. That's the main target.</li>
+  <li>When behavior, controls, structure, or tuning defaults change, update this page
+    (<code>public/docs/index.html</code>) and <code>CLAUDE.md</code> in the same commit.</li>
+</ul>
+
+<footer>Drawn in pencil by Polaris Pixels.</footer>
+</div>
+</body>
+</html>

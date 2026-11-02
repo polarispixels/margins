@@ -2,6 +2,10 @@
 
 A tiny browser platformer that lives on a sheet of lined notebook paper.
 
+- **Play:** https://polarispixels.github.io/margins/
+- **Docs:** https://polarispixels.github.io/margins/docs/ (source: `public/docs/index.html`)
+- **Repo:** https://github.com/polarispixels/margins (deploys to GitHub Pages on push to `main`)
+
 ## Concept
 
 - A stick figure walks and jumps around a page of notebook paper.
@@ -23,8 +27,11 @@ A tiny browser platformer that lives on a sheet of lined notebook paper.
 ```
 margins/
 ├── index.html              # Page shell, mobile viewport, "rotate your phone" hint
-├── vite.config.js          # Exposes the dev server on the LAN (host: true)
+├── vite.config.js          # LAN dev server (host: true), relative base for GitHub Pages
 ├── package.json
+├── README.md
+├── public/docs/index.html  # The docs page; Vite copies public/ into dist/ as-is
+├── .github/workflows/deploy.yml  # Build + deploy to GitHub Pages on push to main
 └── src/
     ├── main.js             # Creates the Phaser.Game (size, scaling, physics)
     ├── config.js           # All tunable numbers and colors live here
@@ -82,9 +89,13 @@ The WSL IP can change after a reboot; rerun the portproxy line if it stops worki
 
 ## Conventions
 
-- Design for **phone landscape first**. The game renders at a fixed 960x540 and
-  scales to fit (`Phaser.Scale.FIT`).
+- Design for **phone landscape first**. The level is laid out in a 960x540 area
+  that is always visible; `Phaser.Scale.EXPAND` fills the rest of the screen with
+  more page (extra width on the right, extra height above). Anything pinned to the
+  screen (touch buttons, messages) uses `this.scale.width/height` and `setScrollFactor(0)`.
 - Put magic numbers in `src/config.js`, not scattered through the code.
 - Keep each file focused on one thing, and keep code readable for a learner:
   short functions, clear names, a comment wherever the "why" isn't obvious.
+- When behavior, controls, structure, or tuning defaults change, update the docs
+  page (`public/docs/index.html`) and this file in the same commit.
 - MVP scope only. Don't add features (sound, scoring, multiple levels) unless asked.

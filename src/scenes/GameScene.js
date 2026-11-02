@@ -1,7 +1,7 @@
 // The one and only scene. It builds the page, reads input, and runs the loop.
 
 import Phaser from 'phaser';
-import { WIDTH, HEIGHT, PLAYER, COLORS } from '../config.js';
+import { HEIGHT, PLAYER, COLORS } from '../config.js';
 import { LEVEL, lineY } from '../level.js';
 import { drawPaper } from '../objects/Paper.js';
 import { Platforms } from '../objects/Platforms.js';
@@ -36,6 +36,23 @@ export class GameScene extends Phaser.Scene {
     this.keys = this.input.keyboard.addKeys('A,D,W,SPACE');
 
     this.touchJumpWasDown = false;
+
+    // Fit to the current screen now, and again whenever it changes size
+    // (phone rotation, the browser's address bar hiding, a resized window).
+    this.fitToScreen();
+    this.scale.on('resize', this.fitToScreen, this);
+    // Stop listening when the scene shuts down, or each restart would add another listener.
+    this.events.once('shutdown', () => this.scale.off('resize', this.fitToScreen, this));
+  }
+
+  // The screen can be wider or taller than the 960x540 level.
+  // Extra width: the page just continues to the right.
+  // Extra height: scroll the camera up so the floor stays at the bottom of the screen.
+  fitToScreen() {
+    const { width, height } = this.scale;
+    const top = HEIGHT - height; // 0 on a 16:9 screen, negative on a taller one
+    this.cameras.main.setScroll(0, top);
+    this.physics.world.setBounds(0, top, width, height);
   }
 
   // Combine keyboard and touch into one simple input object.
@@ -82,13 +99,15 @@ export class GameScene extends Phaser.Scene {
     this.pageComplete = true;
     this.physics.pause();
 
+    // Centered on the screen (setScrollFactor(0) ignores the camera scroll).
     this.add
-      .text(WIDTH / 2, HEIGHT / 2 - 40, 'Page complete', {
+      .text(this.scale.width / 2, this.scale.height / 2 - 40, 'Page complete', {
         fontFamily: '"Comic Sans MS", "Chalkboard SE", "Marker Felt", cursive',
         fontSize: '64px',
         color: '#' + COLORS.pencil.toString(16).padStart(6, '0'),
       })
       .setOrigin(0.5)
+      .setScrollFactor(0)
       .setDepth(20)
       .setAngle(-3); // a little tilt, like it was scribbled
 

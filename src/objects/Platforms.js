@@ -37,8 +37,9 @@ export class Platforms {
     }
 
     // The red margin line is a wall. Its body sits just left of the line,
-    // so the stick figure's body stops right at the line.
-    const wall = scene.add.zone(PAPER.marginX - WALL_THICKNESS / 2, HEIGHT / 2, WALL_THICKNESS, HEIGHT);
+    // so the stick figure's body stops right at the line. It runs from well above
+    // the page top (for tall screens) down to the bottom.
+    const wall = scene.add.zone(PAPER.marginX - WALL_THICKNESS / 2, 0, WALL_THICKNESS, HEIGHT * 2);
     this.group.add(wall);
   }
 

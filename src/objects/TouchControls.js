@@ -6,31 +6,40 @@
 // That handles multi-touch (run + jump) and sliding a finger between
 // left and right without any extra bookkeeping.
 
-import { WIDTH, HEIGHT, COLORS, TOUCH } from '../config.js';
+import { COLORS, TOUCH } from '../config.js';
 import { boilRng, pencilCircle, pencilLine } from '../pencil.js';
 
 export class TouchControls {
   constructor(scene) {
     this.scene = scene;
-    const r = TOUCH.buttonRadius;
-    const y = HEIGHT - r - 16;
-
-    this.buttons = {
-      left: { x: 160 + r, y },
-      right: { x: 160 + r * 3 + 24, y },
-      jump: { x: WIDTH - r - 28, y },
-    };
     this.state = { left: false, right: false, jump: false };
 
     // Only show the buttons on touch devices.
     this.enabled = scene.sys.game.device.input.touch;
-    this.graphics = scene.add.graphics().setDepth(10).setAlpha(TOUCH.alpha);
+    // Buttons live in screen space: setScrollFactor(0) keeps them still when the camera scrolls.
+    this.graphics = scene.add.graphics().setDepth(10).setAlpha(TOUCH.alpha).setScrollFactor(0);
+    this.layout();
+  }
+
+  // Place the buttons relative to the screen's corners, since the screen
+  // size depends on the device.
+  layout() {
+    const { width, height } = this.scene.scale;
+    const r = TOUCH.buttonRadius;
+    const y = height - r - 16;
+
+    this.buttons = {
+      left: { x: 160 + r, y },
+      right: { x: 160 + r * 3 + 24, y },
+      jump: { x: width - r - 28, y },
+    };
   }
 
   // Work out which buttons are held right now.
   update() {
     this.state = { left: false, right: false, jump: false };
     if (!this.enabled) return;
+    this.layout(); // cheap, and keeps up with screen size changes
 
     for (const pointer of this.scene.input.manager.pointers) {
       if (!pointer.isDown) continue;

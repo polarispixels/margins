@@ -1,26 +1,32 @@
 // The notebook page background. Drawn once; it doesn't boil (real paper
 // is printed, not hand-drawn). Platforms are traced over it in pencil.
+//
+// The sheet is drawn much bigger than the level so it covers any screen shape:
+// extra width shows up on the right, extra height above the top line
+// (GameScene scrolls the camera so the floor stays at the bottom).
 
-import { WIDTH, HEIGHT, COLORS, PAPER } from '../config.js';
+import { HEIGHT, PAGE_MAX_WIDTH, COLORS, PAPER } from '../config.js';
+
+const PAGE_TOP = -HEIGHT; // room for screens up to twice as tall as the level
 
 export function drawPaper(scene) {
   const g = scene.add.graphics();
 
   // The sheet itself.
   g.fillStyle(COLORS.paper, 1);
-  g.fillRect(0, 0, WIDTH, HEIGHT);
+  g.fillRect(0, PAGE_TOP, PAGE_MAX_WIDTH, HEIGHT - PAGE_TOP);
 
   // Light blue ruled lines across the whole page.
   g.lineStyle(1.5, COLORS.ruledLine, 0.9);
   for (let y = PAPER.firstLineY; y <= HEIGHT; y += PAPER.lineSpacing) {
-    g.lineBetween(0, y, WIDTH, y);
+    g.lineBetween(0, y, PAGE_MAX_WIDTH, y);
   }
 
   // The red margin line. It's a thin double line on real notebook paper.
   g.lineStyle(2, COLORS.margin, 0.9);
-  g.lineBetween(PAPER.marginX, 0, PAPER.marginX, HEIGHT);
+  g.lineBetween(PAPER.marginX, PAGE_TOP, PAPER.marginX, HEIGHT);
   g.lineStyle(1, COLORS.margin, 0.5);
-  g.lineBetween(PAPER.marginX + 4, 0, PAPER.marginX + 4, HEIGHT);
+  g.lineBetween(PAPER.marginX + 4, PAGE_TOP, PAPER.marginX + 4, HEIGHT);
 
   // Hole punches: a slightly offset light circle gives a hint of a paper edge,
   // then the hole itself shows the desk through.
