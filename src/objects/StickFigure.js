@@ -1,0 +1,140 @@
+// The player: an invisible physics box plus a stick figure drawn on top of it
+// every frame with pencil lines.
+
+import { PLAYER, COLORS } from '../config.js';
+import { boilRng, pencilLine, pencilCircle } from '../pencil.js';
+
+// Body proportions, measured in pixels up from the feet.
+const HIP = 26;
+const SHOULDER = 42;
+const NECK = 46;
+const HEAD_RADIUS = 8;
+const LEG = 27;
+const ARM = 20;
+
+export class StickFigure {
+  constructor(scene, x, y) {
+    this.scene = scene;
+    this.graphics = scene.add.graphics();
+
+    // The physics box. A Zone has no visuals, so all drawing is up to us.
+    this.zone = scene.add.zone(x, y, PLAYER.bodyWidth, PLAYER.bodyHeight);
+    scene.physics.add.existing(this.zone);
+    this.body = this.zone.body;
+    this.body.setCollideWorldBounds(true);
+
+    this.facing = 1; // 1 = right, -1 = left
+    this.walkPhase = 0; // advances while walking; drives the leg/arm swing
+    this.scaleX = 1; // squash and stretch
+    this.scaleY = 1;
+    this.wasOnFloor = false;
+  }
+
+  // input: { left, right, jump } where jump is true only on the frame it's pressed.
+  update(input, dt) {
+    const body = this.body;
+    const onFloor = body.blocked.down || body.touching.down;
+
+    // Walking.
+    const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+    body.setVelocityX(dir * PLAYER.runSpeed);
+    if (dir !== 0) this.facing = dir;
+
+    // Jumping: stretch tall and thin on take-off.
+    if (input.jump && onFloor) {
+      body.setVelocityY(-PLAYER.jumpSpeed);
+      this.setScale(0.8, 1.25);
+    }
+
+    // Landing: squash short and wide.
+    if (onFloor && !this.wasOnFloor) {
+      this.setScale(1.3, 0.7);
+    }
+    this.wasOnFloor = onFloor;
+
+    // Ease the squash/stretch back to normal. Using dt keeps it frame-rate independent.
+    const ease = 1 - Math.exp(-dt * 12);
+    this.scaleX += (1 - this.scaleX) * ease;
+    this.scaleY += (1 - this.scaleY) * ease;
+
+    // Advance the walk cycle while moving on the ground; settle to standing otherwise.
+    if (onFloor && dir !== 0) {
+      this.walkPhase += dt * 14;
+    } else if (onFloor) {
+      this.walkPhase = 0;
+    }
+
+    this.onFloor = onFloor;
+  }
+
+  setScale(x, y) {
+    this.scaleX = x;
+    this.scaleY = y;
+  }
+
+  // Center of the figure, used for the goal check.
+  get center() {
+    return { x: this.body.center.x, y: this.body.center.y };
+  }
+
+  draw(time) {
+    const g = this.graphics;
+    g.clear();
+    const rng = boilRng(time, 1);
+
+    // Feet position: bottom center of the physics body.
+    const feetX = this.body.center.x;
+    const feetY = this.body.bottom;
+
+    // Convert a point in "figure space" (u right, v up from the feet) to
+    // screen space, applying facing direction and squash/stretch.
+    const toScreen = (u, v) => ({
+      x: feetX + u * this.scaleX * this.facing,
+      y: feetY - v * this.scaleY,
+    });
+
+    // Pose. Angles are in radians, measured from straight down.
+    let legA, legB, armA, armB;
+    if (this.onFloor) {
+      const swing = Math.sin(this.walkPhase);
+      // A small base spread so the legs don't overlap when standing still.
+      legA = 0.18 + swing * 0.5;
+      legB = -0.18 - swing * 0.5;
+      armA = -swing * 0.6; // arms swing opposite to legs
+      armB = swing * 0.6;
+    } else {
+      // In the air: legs apart, arms up. Rising vs falling changes it a little.
+      const rising = this.body.velocity.y < 0;
+      legA = 0.5;
+      legB = rising ? -0.2 : -0.45;
+      armA = rising ? 2.6 : 2.0;
+      armB = rising ? -2.6 : -2.0;
+    }
+
+    // Find the end of a limb that starts at (0, startV) and hangs at `angle`.
+    const limb = (startV, length, angle) => toScreen(Math.sin(angle) * length, startV - Math.cos(angle) * length);
+
+    const hip = toScreen(0, HIP);
+    const shoulder = toScreen(0, SHOULDER);
+    const neck = toScreen(0, NECK);
+    const head = toScreen(0, NECK + HEAD_RADIUS);
+    const style = { color: COLORS.pencil, width: PLAYER.lineWidth };
+
+    // Torso.
+    pencilLine(g, rng, hip.x, hip.y, neck.x, neck.y, style);
+
+    // Legs and arms.
+    for (const angle of [legA, legB]) {
+      const foot = limb(HIP, LEG, angle);
+      pencilLine(g, rng, hip.x, hip.y, foot.x, foot.y, style);
+    }
+    for (const angle of [armA, armB]) {
+      const hand = limb(SHOULDER, ARM, angle);
+      pencilLine(g, rng, shoulder.x, shoulder.y, hand.x, hand.y, style);
+    }
+
+    // Head. Average the two scales so the head stays roughly round.
+    const headRadius = HEAD_RADIUS * (this.scaleX + this.scaleY) * 0.5;
+    pencilCircle(g, rng, head.x, head.y, headRadius, { ...style, points: 10 });
+  }
+}
