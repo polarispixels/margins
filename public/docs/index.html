@@ -164,7 +164,7 @@
   <tr><td>Walk</td><td>Arrow keys, or A / D</td><td>◀ ▶ buttons, bottom left</td></tr>
   <tr><td>Jump</td><td>Space (Up arrow and W also work)</td><td>▲ button, bottom right</td></tr>
   <tr><td>Jump higher</td><td>Hold the jump key</td><td>Hold ▲</td></tr>
-  <tr><td>Climb the ladder (comic page)</td><td>Walk into the ladder, then Up / W or Down / S</td><td>▲ ▼ buttons appear at the ladder</td></tr>
+  <tr><td>Climb the ladder (comic page)</td><td>Walk left to the ladder (the paper's edge is fine), then Up / W or Down / S</td><td>▲ ▼ buttons appear at the ladder (▲ at the top floor jumps)</td></tr>
   <tr><td>Step off the ladder</td><td>Left / Right near a floor line</td><td>◀ ▶ near a floor line</td></tr>
 </table></div>
 <p>Tap jump for a small hop, or hold it for the full jump.</p>
@@ -729,7 +729,7 @@ export function boilRng(timeMs, id) {
   <tr><td><code>PLAYER.jumpCutMultiplier</code></td><td>0.5</td><td>Upward speed multiplier when jump is released early. 1 turns variable height off; higher makes taps jump higher.</td></tr>
   <tr><td><code>PLAYER.gravity</code></td><td>1400</td><td>Downward acceleration in px/s².</td></tr>
   <tr><td><code>PLAYER.climbSpeed</code></td><td>170</td><td>Speed up or down the home page ladder, in px/s.</td></tr>
-  <tr><td><code>PLAYER.landingSnap</code></td><td>10</td><td>Within this many px of a floor line, a sideways press steps off the ladder.</td></tr>
+  <tr><td><code>PLAYER.landingSnap</code></td><td>40</td><td>Within this many px of a floor line, a sideways press steps off the ladder onto the nearest line.</td></tr>
   <tr><td><code>HOME.*</code></td><td>see config.js</td><td>Home page layout: first title line, lines per strip, floor offset, panel area (<code>contentLeft</code>/<code>contentRight</code>), gutter, ladder position and width, masthead.</td></tr>
   <tr><td><code>PAPER.lineSpacing</code></td><td>36</td><td>Distance between ruled lines. Moves every platform.</td></tr>
   <tr><td><code>PAPER.marginX</code></td><td>110</td><td>The red margin line and the wall.</td></tr>

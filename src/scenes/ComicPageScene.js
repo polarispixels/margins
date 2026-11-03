@@ -30,6 +30,7 @@ const MASTHEAD_SIZE = 56;
 const CAMERA_EASE = 6; // how quickly the camera catches up (bigger = faster)
 const FOLLOW_FRACTION = 0.7; // his feet sit this far down the screen
 // Modes (not story panels) never show "finished" art.
+const CULL_PAD = 100; // draw things this far outside the screen, so they never pop in
 const MODES = [CLIMB, READ_MODE];
 
 export class ComicPageScene extends Phaser.Scene {
@@ -53,9 +54,8 @@ export class ComicPageScene extends Phaser.Scene {
     this.platforms = new Platforms(
       this,
       layout.strips.map((s) => ({ line: s.floorLine, from: 0, to: PAGE_MAX_WIDTH })),
+      { wall: false }, // here the margin is walkable
     );
-    // Platforms adds a wall along the margin line, but here the margin is walkable.
-    this.platforms.group.remove(this.platforms.group.getChildren().at(-1), true, true);
     this.ladder = new Ladder(this, layout.ladder);
 
     this.buildWritings();
@@ -161,14 +161,34 @@ export class ComicPageScene extends Phaser.Scene {
     this.ladder.draw(time);
     this.walkWord.draw(time);
     this.climbWord.draw(time);
-    this.masthead.draw(time);
-    for (const t of this.titles) t.word?.draw(time);
+    this.drawVisible(time);
+    this.player.draw(time);
+    this.controls.draw(time);
+  }
+
+  // The page is tall, so only draw what is near the screen. Things off screen
+  // are hidden, so no stale drawing is left behind when they scroll back in.
+  drawVisible(time) {
+    const cam = this.cameras.main;
+    const top = cam.scrollY - CULL_PAD;
+    const bottom = cam.scrollY + cam.height / cam.zoom + CULL_PAD;
+    const near = (y, height) => y + height >= top && y <= bottom;
+
+    this.masthead.setVisible(near(this.masthead.y, MASTHEAD_SIZE));
+    if (this.masthead.visible) this.masthead.draw(time);
+    for (const t of this.titles) {
+      if (!t.word) continue;
+      t.word.setVisible(near(t.word.y, TITLE_SIZE));
+      if (t.word.visible) t.word.draw(time);
+    }
     for (const p of this.panels) {
+      const shown = near(p.panel.y, p.panel.height);
+      p.panel.setVisible(shown);
+      p.jumpWord?.setVisible(shown);
+      if (!shown) continue;
       p.panel.draw(time);
       p.jumpWord?.draw(time);
     }
-    this.player.draw(time);
-    this.controls.draw(time);
   }
 
   followCamera(dt) {

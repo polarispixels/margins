@@ -110,6 +110,12 @@ export class PencilWord {
     );
   }
 
+  // Hide or show the word (used to skip words that are far off screen).
+  setVisible(visible) {
+    this.visible = visible;
+    this.graphics.setVisible(visible);
+  }
+
   // Move the word (keeps its alignment).
   setPosition(x, y) {
     this.anchorX = x;

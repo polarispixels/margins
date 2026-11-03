@@ -26,14 +26,17 @@ export class PlayerInput {
     const touch = this.touch.state;
 
     // Touch jump only counts on the frame the finger first lands, like a key press.
-    const touchJump = touch.jump && !this.touchJumpWasDown;
-    this.touchJumpWasDown = touch.jump;
+    // At a ladder the touch layout has no jump button: ▲ stands in for it, like the
+    // keyboard's Up (Ladder.update decides whether ▲ climbs or he jumps instead).
+    const touchJumpDown = touch.jump || (this.touch.mode === 'ladder' && touch.up);
+    const touchJump = touchJumpDown && !this.touchJumpWasDown;
+    this.touchJumpWasDown = touchJumpDown;
 
     return {
       left: c.left.isDown || k.A.isDown || touch.left,
       right: c.right.isDown || k.D.isDown || touch.right,
       jump: JustDown(k.SPACE) || JustDown(c.up) || JustDown(k.W) || touchJump,
-      jumpHeld: k.SPACE.isDown || c.up.isDown || k.W.isDown || touch.jump,
+      jumpHeld: k.SPACE.isDown || c.up.isDown || k.W.isDown || touchJumpDown,
       up: c.up.isDown || k.W.isDown || touch.up,
       down: c.down.isDown || k.S.isDown || touch.down,
     };

@@ -54,7 +54,7 @@ export const PLAYER = {
   airSteer: 60, // after a fling (letting go of a rope), arrows only nudge you this much
   lineWidth: 3,
   climbSpeed: 170, // px per second up or down a ladder
-  landingSnap: 10, // within this many px of a landing, a sideways press steps off the ladder
+  landingSnap: 40, // within this many px of a landing, a sideways press steps off the ladder (strips are 252px apart)
 };
 
 export const TOUCH = {

@@ -26,8 +26,10 @@ export class Ladder {
   // Is the player's body next to the ladder, with feet within its height?
   touches(player) {
     const body = player.body;
+    // The zone runs from the paper's left edge to just right of the ladder, so a
+    // child holding Left (who walks to the edge) can still grab it.
     return (
-      Math.abs(body.center.x - this.x) < this.width / 2 + GRAB_SLACK &&
+      body.center.x < this.x + this.width / 2 + GRAB_SLACK &&
       body.bottom >= this.top - END_SLACK &&
       body.bottom <= this.bottom + END_SLACK
     );
@@ -52,9 +54,10 @@ export class Ladder {
       body.setVelocityY(0);
     }
 
-    // Pressing sideways near a landing steps off onto it.
+    // Pressing sideways steps off onto the nearest landing, if one is close enough.
+    // (Far from any landing nothing happens, so you can't step off into thin air.)
     if (input.left || input.right) {
-      const landing = this.landings.find((y) => Math.abs(body.bottom - y) <= PLAYER.landingSnap);
+      const landing = this.nearestLanding(body.bottom);
       if (landing !== undefined) {
         body.reset(body.center.x, landing - PLAYER.bodyHeight / 2);
         player.stopClimb();
@@ -62,12 +65,22 @@ export class Ladder {
     }
   }
 
+  // The landing closest to y, or undefined when none is within PLAYER.landingSnap.
+  nearestLanding(y) {
+    let best;
+    for (const landing of this.landings) {
+      const gap = Math.abs(y - landing);
+      if (gap <= PLAYER.landingSnap && (best === undefined || gap < Math.abs(y - best))) best = landing;
+    }
+    return best;
+  }
+
   // Two pencil rails and a rung every few pixels, redrawn with the boil.
   draw(time) {
     const g = this.graphics;
     g.clear();
     const rng = boilRng(time, 77);
-    const style = { color: COLORS.pencil, width: 3 };
+    const style = { color: COLORS.pencil, width: PLAYER.lineWidth };
     const left = this.x - this.width / 2;
     const right = this.x + this.width / 2;
     const railTop = this.top - RAIL_EXTRA;

@@ -69,6 +69,13 @@ export class ComicPanel {
     return word;
   }
 
+  // Hide or show the whole panel (used to skip panels that are far off screen).
+  setVisible(visible) {
+    this.frameGraphics.setVisible(visible);
+    this.artGraphics.setVisible(visible);
+    this.word?.setVisible(visible);
+  }
+
   get centerX() {
     return this.x + this.width / 2;
   }

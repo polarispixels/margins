@@ -146,9 +146,10 @@ frame) and `jumpHeld`. Design notes: `docs/superpowers/specs/2026-11-02-jump-fee
 (playable), `locked` (a word and a faint picture from `worldArt.js`), or `empty`. The
 camera follows him up and down the tall page. Climbing is a state on `StickFigure`
 (`startClimb(x)`, `PLAYER.climbSpeed`): `Ladder.update()` runs before `player.update()`,
-and the floor collider is off while climbing so he passes through the lines. Near a
-landing (`PLAYER.landingSnap`), a sideways press steps off onto it. On touch, `TouchControls`
-shows its `ladder` layout (▲ ▼) at the ladder. Design notes:
+and the floor collider is off while climbing so he passes through the lines. The ladder's grab zone runs from the paper's left edge to its right rail. Within
+`PLAYER.landingSnap` (40px) of a landing, a sideways press steps off onto the nearest one. On touch, `TouchControls`
+shows its `ladder` layout (▲ ▼) at the ladder; there ▲ also counts as jump, so at the top
+floor it jumps instead of climbing. Off-screen panels and words are hidden, not drawn. Design notes:
 `docs/superpowers/specs/2026-11-03-newspaper-home-page-design.md`.
 
 ## Launch
