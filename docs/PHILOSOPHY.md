@@ -55,6 +55,10 @@ Proposed, not yet confirmed: `STOP` `DOWN` `YES` `NO` `BIG` `LITTLE`
 Add new words only if an early reader can read them; when in doubt, check a
 kindergarten or first-grade sight-word list.
 
+Read mode is the one place with more words: there, the word *is* the puzzle. Its
+words come from the skill ladder in `docs/reading-framework.md` (CVC words first),
+one at a time, always with a picture to match.
+
 > **Open question:** Strip titles (like "Getting Started") are a little longer
 > than one word. Short, read-aloud-able titles are probably fine because a parent
 > can read them out, but this isn't settled yet.
@@ -110,7 +114,8 @@ When a panel is finished, it shows a little drawing of what happened, so the com
 page tells the story of what you've played.
 
 The comic page is also how you pick a **mode**: the "Climb" strip's panel opens the
-endless climbing game. New modes get their own strip rather than a separate menu.
+endless climbing game, and "Read" opens the reading game. New modes get their own strip
+rather than a separate menu.
 
 ## Not yet (scope discipline)
 

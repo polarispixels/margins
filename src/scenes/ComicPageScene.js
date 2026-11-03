@@ -2,9 +2,9 @@
 //
 // Each strip is a row of panels with a title above it, and each panel is a level
 // or a mode. The stick figure walks along the bottom line and jumps up into a
-// panel to play it. For now there are three strips side by side, one panel each:
-// "Getting Started" (the tutorial), "Launch" (the rocket level), and "Climb"
-// (the endless climber).
+// panel to play it. For now there are four strips side by side, one panel each:
+// "Getting Started" (the tutorial), "Launch" (the rocket level), "Climb" (the
+// endless climber), and "Read" (the reading game).
 
 import Phaser from 'phaser';
 import { PAGE_MAX_WIDTH, PAPER, HEIGHT } from '../config.js';
@@ -19,6 +19,7 @@ import { isComplete, highScores } from '../progress.js';
 import { PANEL_ID as GETTING_STARTED } from './GettingStartedScene.js';
 import { MODE_ID as CLIMB } from './ClimbScene.js';
 import { PANEL_ID as LAUNCH } from './LaunchScene.js';
+import { MODE_ID as READ_MODE } from './ReadScene.js';
 
 const FLOOR_LINE = 12;
 const START_X = 160;
@@ -28,10 +29,13 @@ const TITLE_SIZE = 22;
 // One entry per strip. The panels' bottom edges sit just above the figure's
 // head, so even a quick tap-jump reaches them.
 const PANELS = [
-  { id: GETTING_STARTED, title: 'GETTING STARTED', scene: 'GettingStarted', x: 140, y: 118, width: 220, height: 298 },
-  { id: LAUNCH, title: 'LAUNCH', scene: 'Launch', x: 400, y: 118, width: 220, height: 298 },
-  { id: CLIMB, title: 'CLIMB', scene: 'Climb', x: 660, y: 118, width: 220, height: 298 },
+  { id: GETTING_STARTED, title: 'GETTING STARTED', scene: 'GettingStarted', x: 135, y: 118, width: 185, height: 298 },
+  { id: LAUNCH, title: 'LAUNCH', scene: 'Launch', x: 340, y: 118, width: 185, height: 298 },
+  { id: CLIMB, title: 'CLIMB', scene: 'Climb', x: 545, y: 118, width: 185, height: 298 },
+  { id: READ_MODE, title: 'READ', scene: 'Read', x: 750, y: 118, width: 185, height: 298 },
 ];
+// Modes (not story panels) never show "finished" art.
+const MODES = [CLIMB, READ_MODE];
 
 export class ComicPageScene extends Phaser.Scene {
   constructor() {
@@ -51,8 +55,8 @@ export class ComicPageScene extends Phaser.Scene {
     // Each strip: a panel, its title in the header space above the first ruled
     // line, and a JUMP word written inside the panel when the figure is under it.
     this.strips = PANELS.map((def) => {
-      // Story panels (not Climb) show finished art once they're done.
-      const justFinished = data.returningFrom === def.id && def.id !== CLIMB && isComplete(def.id);
+      // Story panels (not modes) show finished art once they're done.
+      const justFinished = data.returningFrom === def.id && !MODES.includes(def.id) && isComplete(def.id);
       const panel = new ComicPanel(this, def, {
         art: def.id,
         // A panel that was just finished starts blank and fades its art in after the zoom out.
@@ -63,7 +67,7 @@ export class ComicPageScene extends Phaser.Scene {
         def,
         panel,
         justFinished,
-        title: new PencilWord(this, def.title, panel.centerX, 28, TITLE_SIZE, { align: 'center' }),
+        title: fittedTitle(this, def.title, panel),
         jumpWord: new PencilWord(this, 'JUMP', panel.centerX, panel.bottom - 50, 36, { align: 'center', written: false }),
       };
     });
@@ -151,4 +155,14 @@ export class ComicPageScene extends Phaser.Scene {
       if (strip.justFinished) strip.panel.showCompleted();
     });
   }
+}
+
+// A strip's title, in the header space above its panel, shrunk if it would be
+// wider than the panel (GETTING STARTED is long).
+function fittedTitle(scene, text, panel) {
+  const word = new PencilWord(scene, text, panel.centerX, 28, TITLE_SIZE, { align: 'center' });
+  if (word.width <= panel.width) return word;
+  word.graphics.destroy();
+  const size = TITLE_SIZE * (panel.width / word.width);
+  return new PencilWord(scene, text, panel.centerX, 28 + (TITLE_SIZE - size) / 2, size, { align: 'center' });
 }

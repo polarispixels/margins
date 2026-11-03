@@ -4,6 +4,7 @@ import { ComicPageScene } from './scenes/ComicPageScene.js';
 import { GettingStartedScene } from './scenes/GettingStartedScene.js';
 import { ClimbScene } from './scenes/ClimbScene.js';
 import { LaunchScene } from './scenes/LaunchScene.js';
+import { ReadScene } from './scenes/ReadScene.js';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO, // WebGL if available, otherwise Canvas
@@ -32,7 +33,7 @@ const game = new Phaser.Game({
   // Phaser's audio is turned off to keep a single audio context.
   audio: { noAudio: true },
   // The first scene in the list starts the game.
-  scene: [ComicPageScene, GettingStartedScene, LaunchScene, ClimbScene],
+  scene: [ComicPageScene, GettingStartedScene, LaunchScene, ClimbScene, ReadScene],
 });
 
 // In development, expose the game so you can poke at it from the browser console,

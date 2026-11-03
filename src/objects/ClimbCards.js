@@ -212,7 +212,8 @@ export class ScoreCard extends Card {
 }
 
 // Button icons, drawn in pencil at (x, y). `s` scales them with the button.
-function drawIcon(g, rng, icon, x, y, s) {
+// (Read's buttons use these too.)
+export function drawIcon(g, rng, icon, x, y, s) {
   const p = (dx, dy) => ({ x: x + dx * s, y: y + dy * s });
   switch (icon) {
     case 'play': // ▶

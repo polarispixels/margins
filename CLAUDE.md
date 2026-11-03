@@ -33,8 +33,11 @@ and what's deliberately out of scope for now.
   platformer played in **portrait**, with the same walk and jump controls as the story
   levels. Springs and paperclips launch you, ink blots crawl on platforms (stomp them or
   lose), paper airplanes fly you up, and height milestones raise both rewards and danger.
-  Initials and a top-five high score table are saved on the device. The comic page is
-  the mode picker.
+  Initials and a top-five high score table are saved on the device.
+- The fourth strip, "Read", is a **mode** (`ReadScene`): the reading game from
+  `docs/reading-framework.md` (phases 1 and 2). Read a word, tap the matching pencil
+  picture; an adaptive engine (`src/reading/`) picks words and choices to keep the child
+  near 85% success. The comic page is the mode picker.
 - This is a learning / for-fun proof of concept. Keep it small.
 
 ## Tech stack
@@ -54,7 +57,7 @@ margins/
 ├── README.md
 ├── docs/PHILOSOPHY.md      # Who it's for, on-screen words, look & feel, scope. Read first.
 ├── docs/superpowers/specs/ # Short design specs, one per feature
-├── docs/reading-framework.md # Plan for a future adaptive reading game (not built yet)
+├── docs/reading-framework.md # The reading game's plan; Read mode builds phases 1 and 2
 ├── public/docs/index.html  # The docs page; Vite copies public/ into dist/ as-is
 ├── .github/workflows/deploy.yml  # Build + deploy to GitHub Pages on push to main
 └── src/
@@ -66,11 +69,15 @@ margins/
     ├── progress.js         # Finished panels, initials, top-five scores (localStorage, best effort)
     ├── audio.js            # Web Audio: unlock on first gesture, mute (saved), music, sound effects
     ├── milestones.js       # Climb difficulty by height: difficultyAt(), milestoneAt()
+    ├── data/               # Read's content, plain data: words.js, pictures.js, skills.js
+    ├── reading/            # Read's engine, no Phaser: engine, distractors, mastery, patterns,
+    │                       #   store (localStorage), speech (speechSynthesis), dates
     ├── scenes/
     │   ├── ComicPageScene.js       # The comic page (start scene): jump into a panel
     │   ├── GettingStartedScene.js  # The first tutorial panel
     │   ├── LaunchScene.js          # Launch: wires the sections; checkpoints, rocket, flight, city
-    │   └── ClimbScene.js           # Climb mode (portrait): states, camera, blots, flight, milestones
+    │   ├── ClimbScene.js           # Climb mode (portrait): states, camera, blots, flight, milestones
+    │   └── ReadScene.js            # Read mode: the word, picture cards, tap-to-hear, the round
     └── objects/
         ├── Paper.js        # Static background: paper, ruled lines, margin, holes; lineY()
         ├── Platforms.js    # Line segments (+ addSolid boxes): physics + boiling pencil trace
@@ -95,6 +102,8 @@ margins/
         ├── chaseArt.js     # Drawings: toppling trees, tractor beam, the alien, zaps
         ├── puzzleArt.js    # Drawings: colored-pencil hatching, switches, clue note, fence
         ├── CoffeeRing.js   # A coffee ring stain
+        ├── PictureCard.js  # Read: one picture card (wiggle, fade, circle, tap test)
+        ├── PencilPicture.js# Draws a picture from data/pictures.js in boiling pencil
         └── TouchControls.js# On-screen left / right / jump buttons for phones
 ```
 
@@ -132,6 +141,19 @@ switches to its `flight` layout (▲ ▼) and `PlayerInput` reports `up`/`down`.
 off via `audio.noAudio`); mute is saved in `localStorage`. Only Launch plays sound so far.
 Design notes: `docs/superpowers/specs/2026-11-02-launch-design.md` and
 `2026-11-02-launch-expansion-design.md`.
+
+## Read mode
+
+`ReadScene` draws and listens; `ReadingEngine` (`src/reading/engine.js`) decides. The scene
+calls `engine.startRound()`, then `nextPuzzle()` (null when the round is over) and
+`answer(puzzle, { firstPick, ms, hintUsed })` on the first pick only. The engine is plain
+JS with no Phaser, so it can be run and simulated in Node. All thresholds are in `READ`
+in `src/config.js`; content is data in `src/data/` (words tagged by level, skill, theme;
+pictures as pencil shapes), so new words and biomes need no code. Wrong answers wiggle
+and fade, never buzz. Words are spoken only when the speaker is tapped (or after a right
+answer). Progress is one `localStorage` object (`margins.reading`), with no names. Keep the
+repo free of real names: it's public. Design notes:
+`docs/superpowers/specs/2026-11-02-read-mode-design.md`.
 
 ## Climb mode
 

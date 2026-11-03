@@ -206,3 +206,71 @@ export const LAUNCH = {
   parallaxNear: 0.6, // ...and the nearer row at this one
   musicTempo: 120, // beats per minute (the finale plays faster)
 };
+
+// Read: the reading game. Every engine threshold lives here (see
+// docs/reading-framework.md and the Read spec). Scores are 0..100 per word.
+export const READ = {
+  roundLength: 10, // words per round
+  speechRate: 0.8, // tap-to-hear speaks a little slowly
+
+  // Scores: how a word's score changes after an answer.
+  score: {
+    correct: 12, // right on the first try...
+    fastBonus: 8, // ...plus this when it was quick (fluency)...
+    fastMs: 3000, // ...under this many ms
+    slowMs: 8000, // slower than this: only half the points
+    hinted: 4, // right after tapping the speaker: a partial correct
+    miss: -15, // wrong on the first try
+  },
+
+  // Mastery: a word is mastered when all three are true.
+  mastery: {
+    score: 80,
+    days: 3, // right on at least this many different days
+    puzzleTypes: 2, // right in at least this many puzzle types (only as many as exist)
+    skillShare: 0.8, // a skill is mastered when this share of its words are
+  },
+
+  // The next level opens when this share of the current level's words reach this score.
+  unlock: { score: 70, share: 0.8 },
+
+  // Placement warm-up, the first time on a device.
+  placement: {
+    startLevel: 2,
+    upAfter: 2, // right answers in a row to step up a level
+    downAfter: 2, // misses at a level to step down (a mis-tap shouldn't decide it)
+    maxQuestions: 8,
+    distractorStep: 2,
+    dialStep: 1, // where the dial starts afterwards (an easy step)
+    creditScore: 50, // words at levels he passed start with this score, so he isn't held back
+  },
+
+  // Each round: stretch words from the next level up, and spaced review.
+  round: { stretch: 1, stretchHigh: 2, stretchHighFromStep: 3 },
+  review: { intervalsDays: [1, 3, 7, 14], maxPerRound: 2 },
+
+  // Tap-to-hear fades as a word's score rises: shown, then hidden (small and faint), then removed.
+  hints: { showBelow: 40, removeAbove: 70 },
+
+  // The difficulty dial: steps from easiest to hardest. `distractors` is the
+  // three-step rule (1 different words, 2 shared letters, 3 one sound apart).
+  dial: {
+    steps: [
+      { distractors: 1, choices: 3 },
+      { distractors: 2, choices: 3 },
+      { distractors: 3, choices: 3 },
+      { distractors: 3, choices: 4 },
+      { distractors: 3, choices: 5 },
+    ],
+    window: 15, // rolling success rate over (up to) this many answers...
+    cooldown: 8, // ...given since the last move, once there are this many
+    raiseAbove: 0.9, // harder above this (target is about 0.85)
+    easeBelow: 0.75, // easier below this
+    missesForEasyWin: 2, // this many misses in a row → an easy win right away
+    activeStart: 6, // learning words in play at once...
+    activeGrow: 2, // ...and how many more when the dial is at the top and it's still easy
+  },
+
+  // Miss patterns: older misses count for less (each new miss multiplies the old by this).
+  patterns: { decay: 0.9, minToSteer: 2, boost: 2 },
+};

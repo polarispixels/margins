@@ -7,6 +7,7 @@
 //                      over the city with a firework.
 //   'climb':           a little guy bouncing up short lines past a spring and a
 //                      star, with the best score written in the corner.
+//   'read':            the word CAT written over a pencil cat.
 
 import { COLORS } from '../config.js';
 import { boilRng, pencilLine, pencilCircle, pencilPolyline } from '../pencil.js';
@@ -14,6 +15,8 @@ import { drawDog, drawHeart } from './Dog.js';
 import { drawStar } from './climbArt.js';
 import { drawRocket, drawLaunchPad, drawTree, drawFirework } from './launchArt.js';
 import { PencilWord } from './PencilWord.js';
+import { drawPicture } from './PencilPicture.js';
+import { PICTURES } from '../data/pictures.js';
 
 export class ComicPanel {
   // rect: { x, y, width, height } (top-left corner and size). Options: art ('getting-started' or 'climb'),
@@ -29,6 +32,7 @@ export class ComicPanel {
     this.artGraphics = scene.add.graphics();
     this.scene = scene;
     this.bestWord = best > 0 ? new PencilWord(scene, String(best), this.x + 14, this.y + 14, 22) : null;
+    this.readWord = art === 'read' ? new PencilWord(scene, 'CAT', this.centerX, this.y + 46, 40, { align: 'center' }) : null;
   }
 
   get centerX() {
@@ -77,6 +81,9 @@ export class ComicPanel {
     const groundY = y + h * 0.62;
     if (this.art === 'climb') {
       this.drawClimbArt(art, rng, time);
+    } else if (this.art === 'read') {
+      drawPicture(art, rng, PICTURES.cat, this.centerX - 55, y + 110, 110);
+      this.readWord.draw(time);
     } else if (this.art === 'launch') {
       this.drawLaunchArt(art, rng, time);
     } else if (this.completed) {
@@ -99,17 +106,18 @@ export class ComicPanel {
     const groundY = y + this.height * 0.62;
     pencilLine(g, rng, x + 14, groundY, x + this.width - 14, groundY, { color: COLORS.pencil, width: 2.5 });
     if (!this.completed) {
-      drawTree(g, rng, x + 40, groundY, 90, 0.8);
-      drawLaunchPad(g, rng, this.centerX + 20, groundY);
-      drawRocket(g, rng, this.centerX + 20, groundY - 8 - 61 * 0.7, 0, { scale: 0.7, time });
+      drawTree(g, rng, x + 30, groundY, 90, 0.8);
+      drawLaunchPad(g, rng, this.centerX, groundY);
+      drawRocket(g, rng, this.centerX, groundY - 8 - 61 * 0.7, 0, { scale: 0.7, time });
       return;
     }
     // A little skyline, the rocket zooming over it, and a firework going off.
     const heights = [40, 70, 50, 90, 60, 45];
+    const step = (this.width - 30) / heights.length; // fit the skyline to the panel
     heights.forEach((h, i) => {
-      const bx = x + 20 + i * 31;
+      const bx = x + 15 + i * step;
       pencilPolyline(g, rng, [
-        { x: bx, y: groundY }, { x: bx, y: groundY - h }, { x: bx + 26, y: groundY - h }, { x: bx + 26, y: groundY },
+        { x: bx, y: groundY }, { x: bx, y: groundY - h }, { x: bx + step - 5, y: groundY - h }, { x: bx + step - 5, y: groundY },
       ], { color: COLORS.pencil, width: 2 });
     });
     drawRocket(g, rng, this.centerX - 10, y + 70, Math.PI / 2 - 0.15, { scale: 0.55, flame: 0.8, face: true, time });
@@ -119,25 +127,29 @@ export class ComicPanel {
   // Short lines climbing up the panel, a spring, a star, and a little guy mid-bounce.
   drawClimbArt(g, rng, time) {
     const style = { color: COLORS.pencil, width: 2.5 };
-    const { x, y } = this;
+    const { y } = this;
+    // The drawing was made for a 220-wide panel; squeeze it to fit this one.
+    const k = this.width / 220;
+    const x = this.x;
+    const sxOf = (u) => x + u * k;
     const steps = [
       { x: 40, y: 200, w: 70 },
       { x: 130, y: 150, w: 70 },
       { x: 50, y: 100, w: 60 },
       { x: 140, y: 50, w: 60 },
     ];
-    for (const st of steps) pencilLine(g, rng, x + st.x, y + st.y, x + st.x + st.w, y + st.y, style);
+    for (const st of steps) pencilLine(g, rng, sxOf(st.x), y + st.y, sxOf(st.x + st.w), y + st.y, style);
     // A spring on the lowest line.
-    const sx = x + 90;
+    const sx = sxOf(90);
     const sy = y + 200;
     pencilPolyline(g, rng, [
       { x: sx - 8, y: sy }, { x: sx + 8, y: sy - 4 }, { x: sx - 8, y: sy - 8 }, { x: sx + 8, y: sy - 12 },
     ], { ...style, width: 2 });
     pencilLine(g, rng, sx - 11, sy - 13, sx + 11, sy - 13, style);
-    drawStar(g, rng, x + 80, y + 70, 10);
+    drawStar(g, rng, sxOf(80), y + 70, 10);
     // The little guy, bobbing up and down as if bouncing.
     const bob = Math.abs(Math.sin(time / 260)) * 14;
-    drawStandingFigure(g, rng, x + 170, y + 150 - 6 - bob, { color: COLORS.pencil, width: 2.5 });
+    drawStandingFigure(g, rng, sxOf(170), y + 150 - 6 - bob, { color: COLORS.pencil, width: 2.5 });
     if (this.bestWord) this.bestWord.draw(time);
   }
 }

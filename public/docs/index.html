@@ -110,6 +110,7 @@
     <li><a href="#level">The comic page and levels</a></li>
     <li><a href="#launch">Launch</a></li>
     <li><a href="#climb">Climb mode</a></li>
+    <li><a href="#read">Read mode</a></li>
     <li><a href="#tuning">Tuning reference</a></li>
     <li><a href="#deploy">Deployment</a></li>
     <li><a href="#working">Working on Margins</a></li>
@@ -144,7 +145,8 @@
   (rope swings, a river with an alligator), escape a UFO and its alien, press colored switches in the right
   order to start the rocket, then fly it to a city while dodging a fireball that bursts into fireworks. The third strip,
   <em>Climb</em>, is a different <strong>mode</strong>: an endless vertical
-  platformer played in <strong>portrait</strong>. The comic page is how you pick between them.
+  platformer played in <strong>portrait</strong>. The fourth strip, <em>Read</em>, is the reading game: read a
+  word, tap its picture, and the game quietly adapts to the reader. The comic page is how you pick between them.
 </p>
 <p>
   Margins is a small proof of concept, built for learning and fun. It uses
@@ -170,6 +172,14 @@
   <tr><td>Colored switches</td><td colspan="2">Jump or walk onto a button to press it</td></tr>
   <tr><td>Steer the rocket</td><td>Up / W and Down / S</td><td>▲ ▼ buttons, bottom right</td></tr>
   <tr><td>Sound on / off</td><td>M</td><td>Tap the speaker, top right</td></tr>
+</table></div>
+<h3>Read</h3>
+<div class="table-wrap"><table>
+  <tr><th>Action</th><th>Desktop</th><th>Phone (landscape)</th></tr>
+  <tr><td>Pick a picture</td><td>Left / Right to choose, then Space or Enter; or 1–5</td><td>Tap the card</td></tr>
+  <tr><td>Hear the word</td><td>H</td><td>Tap the speaker beside the word</td></tr>
+  <tr><td>Again (after a round)</td><td>Enter or Space</td><td>Tap ↻</td></tr>
+  <tr><td>Back to the comic page</td><td>Esc</td><td>Tap ◀</td></tr>
 </table></div>
 <h3>Climb (portrait)</h3>
 <div class="table-wrap"><table>
@@ -224,11 +234,24 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
     ├── progress.js         Finished panels, initials, top-five high scores (this device)
     ├── audio.js            Web Audio: unlock on first tap/key, mute, music loop, sound effects
     ├── milestones.js       Climb difficulty by height: difficultyAt(), milestoneAt()
+    ├── data/
+    │   ├── words.js        Read's word library: word, level, skill, theme, picture (data only)
+    │   ├── pictures.js     Read's pictures as pencil shapes in a 100 × 100 box (data only)
+    │   └── skills.js       The reading skill ladder, levels 1–9
+    ├── reading/            Read's engine: plain rules, no Phaser
+    │   ├── engine.js       ReadingEngine: rounds, placement, picking words, the dial, answers
+    │   ├── distractors.js  The three-step distractor rule
+    │   ├── mastery.js      Scores, mastery, spaced review, fading hints
+    │   ├── patterns.js     Miss patterns (first sound, vowel, last sound)
+    │   ├── store.js        Save and load in localStorage (best effort)
+    │   ├── speech.js       Tap-to-hear with the browser's speechSynthesis
+    │   └── dates.js        Day strings for "different days" and review dates
     ├── scenes/
     │   ├── ComicPageScene.js       The comic page: strips of panels you jump into
     │   ├── GettingStartedScene.js  The first tutorial panel
     │   ├── LaunchScene.js          Launch: wires the sections together; checkpoints, rocket, flight, city
-    │   └── ClimbScene.js           Climb mode: states, camera, blots, flight, milestones
+    │   ├── ClimbScene.js           Climb mode: states, camera, blots, flight, milestones
+    │   └── ReadScene.js            Read mode: the word, the picture cards, the round
     └── objects/
         ├── Paper.js        Static background (paper, ruled lines, margin, holes) + lineY()
         ├── Platforms.js    Static physics bodies + boiling pencil traces for line segments
@@ -253,6 +276,8 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
         ├── chaseArt.js     Drawings: toppling trees, tractor beam, the alien, zaps
         ├── puzzleArt.js    Colored-pencil hatching, switches, the clue note, the fence
         ├── CoffeeRing.js   A coffee ring stain
+        ├── PictureCard.js  Read: one picture card (wiggle, fade, circle, tap test)
+        ├── PencilPicture.js  Draws a picture from pictures.js in boiling pencil
         └── TouchControls.js  On-screen buttons for phones</code></pre>
 
 <h2 id="loop">Scenes and the game loop</h2>
@@ -267,6 +292,7 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
   <tr><td><code>GettingStartedScene</code></td><td><code>GettingStarted</code></td><td>The first tutorial panel. Waking the dog marks the panel finished and returns to the comic page.</td></tr>
   <tr><td><code>LaunchScene</code></td><td><code>Launch</code></td><td>The Launch level. Reaching the city marks the panel finished and returns to the comic page.</td></tr>
   <tr><td><code>ClimbScene</code></td><td><code>Climb</code></td><td>Climb mode, in portrait. Esc or the ◀ button returns to the comic page.</td></tr>
+  <tr><td><code>ReadScene</code></td><td><code>Read</code></td><td>Read mode. Esc or the ◀ button returns to the comic page.</td></tr>
 </table></div>
 <p>Phaser calls two methods on the running scene:</p>
 <ul>
@@ -614,6 +640,57 @@ export function boilRng(timeMs, id) {
   <tr><td>Sideways reach on a 3-line jump</td><td>≈ 0.65 s in the air × 260 px/s ≈ 168 px</td></tr>
 </table></div>
 
+<h2 id="read">Read mode</h2>
+<p>
+  The reading game, phases 1 and 2 of <code>docs/reading-framework.md</code>
+  (<a href="https://github.com/polarispixels/margins/blob/main/docs/reading-framework.md">on GitHub</a>). A word is written
+  in big pencil letters; below it are 3 to 5 pencil pictures. Tap the one that matches. Right: the card is circled, a soft ding,
+  the word is spoken, and the little figure hops. Wrong: that card wiggles and fades, and you try again; there's no buzzer and
+  nothing is lost. A round is 10 words and always ends on a right answer, then a big star and ↻ / ◀.
+</p>
+<p>
+  <strong>Tap-to-hear</strong> uses the browser's <code>speechSynthesis</code> (<code>reading/speech.js</code>). The word is only
+  spoken before an answer if the child taps the speaker, so the puzzle stays a reading puzzle. The speaker is big for new words,
+  small and faint once a word is familiar, and gone once it's known. No speech in the browser: no speaker.
+</p>
+<p>
+  <strong>The word library is data.</strong> <code>src/data/words.js</code> lists each word with its <code>level</code>,
+  <code>skill</code>, <code>theme</code>, and <code>picture</code> (plus <code>looksLike</code> for pictures that could be mixed up,
+  which are never shown together). <code>src/data/pictures.js</code> draws each picture as a list of pencil shapes (lines, paths,
+  circles, ovals, dots, shading) in a 100 × 100 box. Adding a word or a whole new biome is new entries in those two files, no code.
+  There are 35 farm words now: level 2 (CVC, short a and o) and level 3 (CVC, all short vowels). Words are in capitals, like the
+  rest of Margins' pencil font.
+</p>
+<h3>The engine</h3>
+<p>
+  <code>ReadingEngine</code> (<code>src/reading/engine.js</code>) is plain rules and scores, no Phaser and no AI, so it's
+  predictable and works offline. <code>ReadScene</code> asks it for puzzles (<code>nextPuzzle()</code>) and reports each answer
+  (<code>answer()</code>); only the first pick counts toward scores. Every threshold is in <code>READ</code> in config.js.
+</p>
+<div class="table-wrap"><table>
+  <tr><th>Part</th><th>How it works</th></tr>
+  <tr><td>Scores</td><td>Each word has a score from 0 to 100. Right on the first try adds points, more if quick; right after
+    tapping the speaker is a partial correct; a wrong first pick is a miss.</td></tr>
+  <tr><td>Mastery</td><td>A high score, right on 3 different days, and right in 2 puzzle types (only one type exists until phase 3,
+    so one counts for now). A skill is mastered when most of its words are.</td></tr>
+  <tr><td>Placement</td><td>The first round on a device starts with a warm-up: from level 2, up after 2 right in a row, down after
+    2 misses, until it finds where the child lands. Then he starts one level below that, on an easy dial step, with a head start on
+    the levels he passed.</td></tr>
+  <tr><td>Each round</td><td>Mostly learning words at his level (low scores come up more), up to 2 review words that are due, and 1 or 2
+    stretch words from the next level. A new word comes into play each time one becomes secure. The next level opens when most of this
+    level's words are secure.</td></tr>
+  <tr><td>Distractors</td><td>Three steps: 1, different words (no letter in the same place); 2, shared letters; 3, one sound apart
+    (CAT, HAT, RAT). It fills in from the easier step if there aren't enough.</td></tr>
+  <tr><td>Difficulty dial</td><td>Steps from 3 very different pictures up to 5 one-sound-apart pictures. It watches the success rate
+    since its last move (up to 15 answers, once there are 8): above 90% harder (or more new words at the top), below 75% easier.
+    Two misses in a row: an easy win right away.</td></tr>
+  <tr><td>Spaced review</td><td>Mastered words come back after 1, 3, 7, and 14 days. A miss sends a word back to learning.</td></tr>
+  <tr><td>Miss patterns</td><td>Each wrong pick is compared with the word: a different first letter, vowel, or last letter. The
+    strongest pattern steers practice: words with neighbors in that place come up more, and one-sound-apart choices differ there.</td></tr>
+  <tr><td>Storage</td><td>One JSON object in <code>localStorage</code> (<code>margins.reading</code>): placement, level, dial, recent
+    answers, patterns, and per-word records. No names or accounts. To start over: <code>localStorage.removeItem('margins.reading')</code>.</td></tr>
+</table></div>
+
 <h2 id="tuning">Tuning reference</h2>
 <p>All of these live in <code>src/config.js</code>.</p>
 <div class="table-wrap"><table>
@@ -650,6 +727,15 @@ export function boilRng(timeMs, id) {
   <tr><td><code>CLIMB.milestones</code></td><td>table</td><td>Climb: per-height settings (platform widths, gaps, star/spring/paperclip/blot/airplane chances, blot speed and chasing, point values) and the milestone words.</td></tr>
   <tr><td><code>CLIMB.beyond</code></td><td>every 500</td><td>Climb: how difficulty keeps stepping up past the last milestone, and its limits.</td></tr>
   <tr><td><code>CLIMB.cameraLead</code></td><td>0.4</td><td>Climb: how far down the screen the figure stays while rising.</td></tr>
+  <tr><td><code>READ.roundLength</code></td><td>10</td><td>Read: words per round.</td></tr>
+  <tr><td><code>READ.score</code></td><td>+12 (+8 fast) / +4 hinted / −15</td><td>Read: score changes for right, quick, hinted, and missed answers.</td></tr>
+  <tr><td><code>READ.mastery</code></td><td>80, 3 days, 2 types</td><td>Read: what mastered means; <code>skillShare</code> 0.8 for a skill.</td></tr>
+  <tr><td><code>READ.unlock</code></td><td>score 70, share 0.8</td><td>Read: when the next level opens.</td></tr>
+  <tr><td><code>READ.placement</code></td><td>start 2, up 2, down 2, max 8</td><td>Read: the warm-up, where the dial starts after, and the head start.</td></tr>
+  <tr><td><code>READ.dial</code></td><td>5 steps, 0.9 / 0.75</td><td>Read: dial steps (distractor step and choices), window, cooldown, thresholds, easy-win trigger, active words.</td></tr>
+  <tr><td><code>READ.review.intervalsDays</code></td><td>1, 3, 7, 14</td><td>Read: spaced review gaps.</td></tr>
+  <tr><td><code>READ.hints</code></td><td>40 / 70</td><td>Read: below 40 the speaker is big; below 70 small and faint; above, gone.</td></tr>
+  <tr><td><code>READ.patterns</code></td><td>decay 0.9</td><td>Read: how fast old misses fade, and how strongly a pattern steers practice.</td></tr>
   <tr><td><code>COLORS.*</code></td><td>—</td><td>Paper, ruled line, margin, pencil, and coffee colors.</td></tr>
 </table></div>
 
