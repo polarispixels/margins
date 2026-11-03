@@ -16,10 +16,19 @@ and what's deliberately out of scope for now.
 - A stick figure walks and jumps around a page of notebook paper.
 - Everything is drawn in "pencil" and **boils**: lines are redrawn with a small
   random wobble several times a second, like a hand-drawn flipbook.
-- The blue ruled lines are platforms. The red margin line on the left is a wall.
-- The game opens on a **comic page** (`ComicPageScene`): strips of panels drawn in the
-  notebook. Walk along the bottom line and jump up into a panel to play its level.
-- The first strip, "Getting Started", has one panel (`GettingStartedScene`): the line
+- The blue ruled lines are platforms. The red margin line on the left is a wall in the
+  levels. On the home page the margin is walkable (the paper's left edge is the wall).
+- The game opens on a **comic page** (`ComicPageScene`): a tall newspaper comics page
+  with a masthead and strips stacked down the page, each a title and a row of panels.
+  The page is the world map, strips are worlds, panels are levels. Walk along a strip's
+  floor line and jump up into a panel to play its level. A **ladder in the margin**
+  joins every floor: touch it and press Up or Down to climb, Left or Right to step off.
+  The word CLIMB is written beside the ladder the first time he reaches it; JUMP appears
+  under an open panel once he has walked away from his spawn. Bumping a panel only counts
+  on the strip he's standing on. Strips are data in `src/data/strips.js`; locked panels
+  (a word and a faint picture) and empty slots mean "more coming". Panel words and strip
+  titles are labels, not instructions.
+- The first strip, "Getting Started", has one playable panel (`GettingStartedScene`) plus locked ones: the line
   draws itself as you walk (WALK), the word JUMP is a solid obstacle, and a sleeping dog
   waits at the end. Finished panels show their story art (saved in `progress.js`).
 - The second strip, "Launch" (`LaunchScene`), is a long side-scrolling story level on one
@@ -55,6 +64,7 @@ margins/
 ├── index.html              # Page shell, mobile viewport, "rotate your phone" hint
 ├── vite.config.js          # LAN dev server (host: true), relative base for GitHub Pages
 ├── package.json
+├── tests/                  # Node tests for plain-JS logic (npm test)
 ├── README.md
 ├── docs/PHILOSOPHY.md      # Who it's for, on-screen words, look & feel, scope. Read first.
 ├── docs/superpowers/specs/ # Short design specs, one per feature
@@ -70,7 +80,9 @@ margins/
     ├── progress.js         # Finished panels, initials, top-five scores (localStorage, best effort)
     ├── audio.js            # Web Audio: unlock on first gesture, mute (saved), music, sound effects
     ├── milestones.js       # Climb difficulty by height: difficultyAt(), milestoneAt()
-    ├── data/               # Read's content, plain data: words.js, pictures.js, skills.js
+    ├── data/               # Plain data: strips.js (the home page), and Read's words.js, pictures.js, skills.js
+    ├── home/
+    │   └── pageLayout.js   # Home page math (no Phaser): strip rows, floors, panel boxes; unit-tested
     ├── reading/            # Read's engine, no Phaser: engine, distractors, mastery, patterns,
     │                       #   store (localStorage), speech (speechSynthesis), dates
     ├── scenes/
@@ -84,7 +96,9 @@ margins/
         ├── Platforms.js    # Line segments (+ addSolid boxes): physics + boiling pencil trace
         ├── StickFigure.js  # Player physics, movement, walk cycle, squash and stretch
         ├── PencilWord.js   # Words in pencil via a tiny stroke font; write-on and fade
-        ├── ComicPanel.js   # A comic panel: frame, art, and the jump-in trigger
+        ├── ComicPanel.js   # A comic panel: open, locked, or empty; frame, art, word, jump-in trigger
+        ├── Ladder.js       # The margin ladder: touch + Up/Down starts a climb, Left/Right steps off
+        ├── worldArt.js     # Small drawings for locked panels (one noun each)
         ├── Dog.js          # The doodle dog; drawDog/drawHeart for panel art
         ├── DrawingPencil.js# The pencil that draws the line ahead of the figure
         ├── ClimbCourse.js  # Climb's random platforms and what's on them
@@ -124,6 +138,18 @@ and `jumpCutMultiplier` under `PLAYER` in `src/config.js`. Input arrives as
 `{ left, right, jump, jumpHeld, up, down }` from `PlayerInput.read()` (`src/input.js`), built from both
 keyboard and touch, so any new input source must fill in both `jump` (pressed this
 frame) and `jumpHeld`. Design notes: `docs/superpowers/specs/2026-11-02-jump-feel-design.md`.
+
+## Home page and the ladder
+
+`ComicPageScene` builds its layout from `STRIPS` (`src/data/strips.js`) and the math in
+`src/home/pageLayout.js`; numbers are under `HOME` in `src/config.js`. A panel is `open`
+(playable), `locked` (a word and a faint picture from `worldArt.js`), or `empty`. The
+camera follows him up and down the tall page. Climbing is a state on `StickFigure`
+(`startClimb(x)`, `PLAYER.climbSpeed`): `Ladder.update()` runs before `player.update()`,
+and the floor collider is off while climbing so he passes through the lines. Near a
+landing (`PLAYER.landingSnap`), a sideways press steps off onto it. On touch, `TouchControls`
+shows its `ladder` layout (▲ ▼) at the ladder. Design notes:
+`docs/superpowers/specs/2026-11-03-newspaper-home-page-design.md`.
 
 ## Launch
 
@@ -190,6 +216,7 @@ npm install
 npm run dev      # dev server at http://localhost:5173 (also shown on your LAN)
 npm run build    # production build into dist/
 npm run preview  # serve the built dist/ folder
+npm test         # node --test "tests/**/*.test.js" (plain logic, no browser)
 ```
 
 ### On a phone (same Wi-Fi)

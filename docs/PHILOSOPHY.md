@@ -47,7 +47,7 @@ Before anything ships, ask:
 Approved: `WALK` `JUMP` `HURRY` `LOOK OUT!` `DANGER`
 
 In use, not yet confirmed: `GO!` `UP!` (Climb milestone messages), `3 2 1 GO!`
-and `THE END` (Launch)
+and `THE END` (Launch), `CLIMB` (written beside the home page ladder)
 
 Proposed, not yet confirmed: `STOP` `DOWN` `YES` `NO` `BIG` `LITTLE`
 `IN` `OUT` `HELP`
@@ -59,9 +59,10 @@ Read mode is the one place with more words: there, the word *is* the puzzle. Its
 words come from the skill ladder in `docs/reading-framework.md` (CVC words first),
 one at a time, always with a picture to match.
 
-> **Open question:** Strip titles (like "Getting Started") are a little longer
-> than one word. Short, read-aloud-able titles are probably fine because a parent
-> can read them out, but this isn't settled yet.
+**Labels vs. instructions.** The masthead, strip titles, and panel words are *labels*:
+names of places, like signs. They are drawn smaller than instruction words, and a parent
+can read them out. They don't count against "one big word at a time", which is about
+*instructions* (WALK, JUMP, CLIMB) written in the moment.
 
 ## Look and feel
 
@@ -101,10 +102,13 @@ artwork. Make up our own dogs.
 
 Levels are chosen from a page that looks like the **newspaper comics section**:
 
-- Each **row is a strip** with a title at the top, like the name of a cartoon.
+- The page is tall, with a masthead at the top. **Strips are stacked down the page**,
+  each with a title at the top, like the name of a cartoon. A **ladder in the margin**
+  joins them, so the stick figure can climb between strips.
 - Each **panel in the row is a level**, and together the panels tell a little story.
-- The stick figure walks along a line at the bottom of the page and **jumps up into
-  a panel** to enter that level.
+- The stick figure walks along a strip's floor line and **jumps up into
+  a panel** to enter that level. Locked panels show a word and a faint picture; empty
+  slots mean more is coming.
 
 The first strip is **"Getting Started"**: basic tutorials that teach how to move
 and do things, the way good games teach their controls. More advanced controls and

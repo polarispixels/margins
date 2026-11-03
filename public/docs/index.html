@@ -134,12 +134,15 @@
 <p>
   Everything on the page is drawn in pencil and <strong>boils</strong>: lines redraw with a small
   random wobble several times a second, like a flipbook. The light blue ruled lines are platforms,
-  the red margin line on the left is a wall.
+  the red margin line on the left is a wall in the levels (on the comic page the margin is walkable, with the ladder in it).
 </p>
 <p>
-  The game opens on a <strong>comic page</strong>: a comic strip drawn in the notebook. Each strip is a row
-  of panels with a title, and each panel is a level. The stick figure walks along the bottom line and
-  <strong>jumps up into a panel</strong> to play it. The first strip, <em>Getting Started</em>, has one panel:
+  The game opens on a <strong>comic page</strong>: a tall newspaper comics page with a masthead and strips
+  stacked down the page. Each strip has a title and a row of panels, and each panel is a level. The page is the
+  world map, strips are worlds, panels are levels. The stick figure walks along a strip's floor line and
+  <strong>jumps up into a panel</strong> to play it. A <strong>ladder in the margin</strong> joins the floors, so
+  he can climb between strips. Locked panels (a word and a faint picture) and empty slots mean more is coming.
+  The first strip, <em>Getting Started</em>, has one playable panel:
   a tutorial where the page draws itself as you walk, the word JUMP is the obstacle, and a sleeping dog
   waits at the end. The second strip, <em>Launch</em>, is a long side-scrolling story level: run through a forest
   (rope swings, a river with an alligator), escape a UFO and its alien, press colored switches in the right
@@ -161,6 +164,8 @@
   <tr><td>Walk</td><td>Arrow keys, or A / D</td><td>◀ ▶ buttons, bottom left</td></tr>
   <tr><td>Jump</td><td>Space (Up arrow and W also work)</td><td>▲ button, bottom right</td></tr>
   <tr><td>Jump higher</td><td>Hold the jump key</td><td>Hold ▲</td></tr>
+  <tr><td>Climb the ladder (comic page)</td><td>Walk into the ladder, then Up / W or Down / S</td><td>▲ ▼ buttons appear at the ladder</td></tr>
+  <tr><td>Step off the ladder</td><td>Left / Right near a floor line</td><td>◀ ▶ near a floor line</td></tr>
 </table></div>
 <p>Tap jump for a small hop, or hold it for the full jump.</p>
 <h3>Launch</h3>
@@ -199,7 +204,8 @@
 <pre><code>npm install
 npm run dev      # http://localhost:5173, plus a "Network" address for phones
 npm run build    # production build into dist/
-npm run preview  # serve the built dist/ folder</code></pre>
+npm run preview  # serve the built dist/ folder
+npm test         # node --test "tests/**/*.test.js": plain logic, no browser</code></pre>
 
 <h3>On a phone over home Wi-Fi</h3>
 <p>
@@ -224,6 +230,7 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
 ├── vite.config.js          LAN dev server, relative base path for GitHub Pages
 ├── docs/PHILOSOPHY.md      Who it's for, words on screen, look and feel. Read first.
 ├── docs/superpowers/specs/ Short design specs, one per feature
+├── tests/                  Node tests for plain logic (npm test)
 ├── public/docs/index.html  This page (copied as-is into dist/docs/)
 ├── .github/workflows/deploy.yml   Build + deploy to GitHub Pages on push to main
 └── src/
@@ -236,9 +243,12 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
     ├── audio.js            Web Audio: unlock on first tap/key, mute, music loop, sound effects
     ├── milestones.js       Climb difficulty by height: difficultyAt(), milestoneAt()
     ├── data/
+    │   ├── strips.js       The home page's strips and panels (open, locked, empty)
     │   ├── words.js        Read's word library: word, level, skill, theme, picture (data only)
     │   ├── pictures.js     Read's pictures as pencil shapes in a 100 × 100 box (data only)
     │   └── skills.js       The reading skill ladder, levels 1–9
+    ├── home/
+    │   └── pageLayout.js   Home page math: strip rows, floors, panel boxes (no Phaser, unit-tested)
     ├── reading/            Read's engine: plain rules, no Phaser
     │   ├── engine.js       ReadingEngine: rounds, placement, picking words, the dial, answers
     │   ├── distractors.js  The three-step distractor rule
@@ -248,7 +258,7 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
     │   ├── speech.js       Tap-to-hear with the browser's speechSynthesis
     │   └── dates.js        Day strings for "different days" and review dates
     ├── scenes/
-    │   ├── ComicPageScene.js       The comic page: strips of panels you jump into
+    │   ├── ComicPageScene.js       The comic page: a tall newspaper page of strips
     │   ├── GettingStartedScene.js  The first tutorial panel
     │   ├── LaunchScene.js          Launch: wires the sections together; checkpoints, rocket, flight, city
     │   ├── ClimbScene.js           Climb mode: states, camera, blots, flight, milestones
@@ -258,7 +268,9 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
         ├── Platforms.js    Static physics bodies + boiling pencil traces for line segments
         ├── StickFigure.js  Player physics, movement, jump feel, walk cycle, squash and stretch
         ├── PencilWord.js   Words written in pencil with a tiny stroke font
-        ├── ComicPanel.js   A comic panel: frame, art, and "did he jump in?"
+        ├── ComicPanel.js   A comic panel: open, locked, or empty; frame, art, and "did he jump in?"
+        ├── Ladder.js       The margin ladder on the comic page
+        ├── worldArt.js     Small drawings for locked panels
         ├── Dog.js          The doodle dog (plus drawDog / drawHeart for panel art)
         ├── DrawingPencil.js  The pencil that draws the line ahead of the figure
         ├── ClimbCourse.js  Climb's platforms and what's on them (generated as you rise)
@@ -508,7 +520,7 @@ export function boilRng(timeMs, id) {
   <li>Write a scene for the level (copy <code>GettingStartedScene</code> for the basics) and add it to the list in <code>main.js</code>.</li>
   <li>When the level is finished, call <code>markComplete(panelId)</code> and
     <code>this.scene.start('ComicPage', { returningFrom: panelId })</code>.</li>
-  <li>Add the panel to <code>ComicPageScene</code> and give <code>ComicPanel</code> its art.</li>
+  <li>Add the panel to <code>src/data/strips.js</code> (swap a <code>locked(...)</code> or <code>empty()</code> slot for <code>open(...)</code>) and give <code>ComicPanel</code> its art.</li>
 </ol>
 <p>
   Platforms are described by ruled line, not pixels: <code>{ line: 9, from: 190, to: 360, oneWay: true }</code>.
@@ -716,6 +728,9 @@ export function boilRng(timeMs, id) {
   <tr><td><code>PLAYER.jumpBufferMs</code></td><td>120</td><td>How long an early jump press is remembered before landing.</td></tr>
   <tr><td><code>PLAYER.jumpCutMultiplier</code></td><td>0.5</td><td>Upward speed multiplier when jump is released early. 1 turns variable height off; higher makes taps jump higher.</td></tr>
   <tr><td><code>PLAYER.gravity</code></td><td>1400</td><td>Downward acceleration in px/s².</td></tr>
+  <tr><td><code>PLAYER.climbSpeed</code></td><td>170</td><td>Speed up or down the home page ladder, in px/s.</td></tr>
+  <tr><td><code>PLAYER.landingSnap</code></td><td>10</td><td>Within this many px of a floor line, a sideways press steps off the ladder.</td></tr>
+  <tr><td><code>HOME.*</code></td><td>see config.js</td><td>Home page layout: first title line, lines per strip, floor offset, panel area (<code>contentLeft</code>/<code>contentRight</code>), gutter, ladder position and width, masthead.</td></tr>
   <tr><td><code>PAPER.lineSpacing</code></td><td>36</td><td>Distance between ruled lines. Moves every platform.</td></tr>
   <tr><td><code>PAPER.marginX</code></td><td>110</td><td>The red margin line and the wall.</td></tr>
   <tr><td><code>TOUCH.buttonRadius / alpha</code></td><td>46 / 0.55</td><td>Size and opacity of the phone buttons.</td></tr>

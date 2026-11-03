@@ -1,6 +1,6 @@
 # The home page as a newspaper comics page
 
-**Date:** 2026-11-03 · **Status:** approved 2026-11-03
+**Date:** 2026-11-03 · **Status:** approved, built 2026-11-03
 
 ## Intent
 
