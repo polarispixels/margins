@@ -277,3 +277,20 @@ export const READ = {
   // Miss patterns: older misses count for less (each new miss multiplies the old by this).
   patterns: { decay: 0.9, minToSteer: 2, boost: 2 },
 };
+
+// The newspaper home page: strips of panels on one tall sheet. Line numbers count
+// ruled lines; the rest are pixels.
+export const HOME = {
+  firstTitleLine: 2,    // ruled line the first strip's title sits on
+  stripLines: 7,        // ruled lines from one strip's title to the next
+  floorOffsetLines: 6,  // floor line = title line + this
+  contentLeft: 140,     // panels span contentLeft..contentRight
+  contentRight: 940,
+  gutter: 16,           // space between panels
+  panelGapBelowTitle: 8,
+  headroom: 18,         // space between his head and the panel's bottom edge
+  ladderX: 84,
+  ladderWidth: 32,
+  mastheadTop: 10,
+  bottomLines: 2,       // blank ruled lines under the last floor
+};
