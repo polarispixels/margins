@@ -2,6 +2,7 @@
 //   'platformer' (default): left and right in the bottom-left corner, jump in
 //                           the bottom-right.
 //   'flight' (Launch's rocket): up above down, in the bottom-right.
+//   'ladder' (the home page's ladders): left and right bottom-left, up above down bottom-right.
 //   'none': no buttons (e.g. during a cutscene).
 //
 // Instead of listening for "button pressed" events, every frame we look at
@@ -40,17 +41,26 @@ export class TouchControls {
       this.buttons = {};
       return;
     }
+    const upDown = {
+      up: { x: width - r - 28, y: y - r * 2 - 20 },
+      down: { x: width - r - 28, y },
+    };
     if (this.mode === 'flight') {
-      this.buttons = {
-        up: { x: width - r - 28, y: y - r * 2 - 20 },
-        down: { x: width - r - 28, y },
-      };
+      this.buttons = upDown;
       return;
     }
     // In landscape, the arrows start right of the margin; in portrait (Climb)
     // the screen is narrow, so they start near the left edge.
     const left = width > height ? 160 : 20;
 
+    if (this.mode === 'ladder') {
+      this.buttons = {
+        left: { x: left + r, y },
+        right: { x: left + r * 3 + 24, y },
+        ...upDown,
+      };
+      return;
+    }
     this.buttons = {
       left: { x: left + r, y },
       right: { x: left + r * 3 + 24, y },

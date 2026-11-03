@@ -39,6 +39,9 @@ export class StickFigure {
     this.jumpBufferTimer = 0; // "jump was pressed recently" before landing
     this.jumpCutAvailable = false; // true while rising from a jump that can still be cut short
 
+    this.climbing = false; // true while on a ladder: no gravity, up/down moves him
+    this.climbPhase = 0; // advances while climbing; drives the reaching pose
+
     this.dancing = null; // { name, start, ms } while a celebration dance plays (see dances.js)
   }
 
@@ -49,6 +52,25 @@ export class StickFigure {
 
   get isDancing() {
     return this.dancing !== null && this.scene.time.now < this.dancing.start + this.dancing.ms;
+  }
+
+  // Grab a ladder whose center is at x: hang there with no gravity.
+  startClimb(x) {
+    this.climbing = true;
+    this.body.reset(x, this.body.center.y);
+    this.body.setVelocity(0, 0);
+    this.body.setAllowGravity(false);
+    this.jumpBufferTimer = 0;
+    this.coyoteTimer = 0;
+    this.jumpCutAvailable = false;
+    this.carryX = 0;
+  }
+
+  // Let go of the ladder and fall (or stand) normally again.
+  stopClimb() {
+    this.climbing = false;
+    this.body.setAllowGravity(true);
+    this.body.setVelocity(0, 0);
   }
 
   // His head hit something from below: stop rising and drop back down.
@@ -67,6 +89,11 @@ export class StickFigure {
     const onFloor = body.blocked.down || body.touching.down;
     const ms = dt * 1000;
     this.jumped = false; // true only on the frame he jumps (e.g. for a sound)
+
+    if (this.climbing) {
+      this.updateClimb(input, dt);
+      return;
+    }
 
     // Walking (or flying through the air after a fling, steering a little).
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
@@ -129,6 +156,15 @@ export class StickFigure {
     }
 
     this.onFloor = onFloor;
+  }
+
+  // On a ladder: up and down move him, nothing else does.
+  updateClimb(input, dt) {
+    const vy = ((input.down ? 1 : 0) - (input.up ? 1 : 0)) * PLAYER.climbSpeed;
+    this.body.setVelocity(0, vy);
+    if (vy !== 0) this.climbPhase += dt * 9;
+    this.wasOnFloor = false;
+    this.onFloor = false;
   }
 
   // Fly off sideways at vx (and vy), keeping that speed until landing.
@@ -205,6 +241,11 @@ export class StickFigure {
 
   // How his arms and legs are bent right now: a dance move, walking, or in the air.
   pose(time) {
+    if (this.climbing) {
+      // Facing the page: hands reach up one after the other, knees bend in turn.
+      const reach = Math.sin(this.climbPhase);
+      return { legA: 0.3 * reach, legB: -0.3 * reach, armA: 2.5 + 0.4 * reach, armB: -2.5 + 0.4 * reach };
+    }
     if (this.dancing && this.onFloor) {
       const t = (time - this.dancing.start) / 1000;
       const p = Math.min(1, (time - this.dancing.start) / this.dancing.ms);
