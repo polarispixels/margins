@@ -23,6 +23,7 @@ export class StickFigure {
     this.body = this.zone.body;
     this.body.setCollideWorldBounds(true);
 
+    this.runSpeed = PLAYER.runSpeed; // a scene can change this (Climb steers a bit faster)
     this.facing = 1; // 1 = right, -1 = left
     this.walkPhase = 0; // advances while walking; drives the leg/arm swing
     this.scaleX = 1; // squash and stretch
@@ -45,7 +46,7 @@ export class StickFigure {
 
     // Walking.
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-    body.setVelocityX(dir * PLAYER.runSpeed);
+    body.setVelocityX(dir * this.runSpeed);
     if (dir !== 0) this.facing = dir;
 
     // Landing: squash short and wide. Done before the jump check so a

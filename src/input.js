@@ -5,11 +5,12 @@ import Phaser from 'phaser';
 import { TouchControls } from './objects/TouchControls.js';
 
 export class PlayerInput {
-  constructor(scene) {
+  // touchLayout: 'platformer' (left, right, jump) or 'steer' (left/right halves; see TouchControls).
+  constructor(scene, { touchLayout = 'platformer' } = {}) {
     // Keyboard: arrow keys, or A/D, plus space (up arrow / W also jump).
     this.cursors = scene.input.keyboard.createCursorKeys();
     this.keys = scene.input.keyboard.addKeys('A,D,W,SPACE');
-    this.touch = new TouchControls(scene);
+    this.touch = new TouchControls(scene, { layout: touchLayout });
     this.touchJumpWasDown = false;
   }
 

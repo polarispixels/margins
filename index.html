@@ -25,7 +25,9 @@
         width: 100%;
         height: 100%;
       }
-      /* Ask phone players to turn their device sideways. */
+      /* Ask phone players to turn their phone the way the current mode wants.
+         The game sets <body data-orientation="landscape|portrait">. The hint is a
+         wordless drawing: a phone outline that turns to the right way up. */
       #rotate {
         display: none;
         position: fixed;
@@ -33,21 +35,42 @@
         align-items: center;
         justify-content: center;
         background: #f7f3e8;
-        color: #333;
-        font: 24px 'Comic Sans MS', 'Chalkboard SE', cursive;
-        text-align: center;
-        padding: 16px;
       }
+      #rotate .phone {
+        width: 70px;
+        height: 120px;
+        border: 4px solid #3a3a3a;
+        border-radius: 12px;
+        animation: turn-sideways 1.8s ease-in-out infinite;
+      }
+      [data-orientation='portrait'] #rotate .phone {
+        animation-name: turn-upright;
+      }
+      @keyframes turn-sideways {
+        0%, 25% { transform: rotate(0deg); }
+        60%, 100% { transform: rotate(-90deg); }
+      }
+      @keyframes turn-upright {
+        0%, 25% { transform: rotate(-90deg); }
+        60%, 100% { transform: rotate(0deg); }
+      }
+      /* Landscape mode held upright on a phone... */
       @media (orientation: portrait) and (max-width: 900px) {
-        #rotate {
+        [data-orientation='landscape'] #rotate {
+          display: flex;
+        }
+      }
+      /* ...or portrait mode (Climb) held sideways on a phone. */
+      @media (orientation: landscape) and (max-height: 500px) {
+        [data-orientation='portrait'] #rotate {
           display: flex;
         }
       }
     </style>
   </head>
-  <body>
+  <body data-orientation="landscape">
     <div id="game"></div>
-    <div id="rotate">Turn your phone sideways ↻</div>
+    <div id="rotate" role="img" aria-label="Turn your phone"><div class="phone"></div></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

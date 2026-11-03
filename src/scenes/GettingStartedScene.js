@@ -18,7 +18,7 @@ import { Dog } from '../objects/Dog.js';
 import { DrawingPencil } from '../objects/DrawingPencil.js';
 import { PencilWord } from '../objects/PencilWord.js';
 import { PlayerInput } from '../input.js';
-import { watchScreen, fadeInFromPaper, fadeOutToPaper } from '../screen.js';
+import { useLayout, LANDSCAPE, watchScreen, fadeInFromPaper, fadeOutToPaper } from '../screen.js';
 import { markComplete } from '../progress.js';
 
 export const PANEL_ID = 'getting-started';
@@ -43,6 +43,7 @@ export class GettingStartedScene extends Phaser.Scene {
     this.physics.resume(); // the comic page pauses physics while zooming in
     const floorY = lineY(FLOOR_LINE);
 
+    useLayout(this, LANDSCAPE); // Climb switches to portrait; switch back
     drawPaper(this);
 
     // The floor is solid all the way across, but its pencil trace is only drawn

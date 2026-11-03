@@ -108,6 +108,7 @@
     <li><a href="#screens">Fitting any screen</a></li>
     <li><a href="#touch">Touch controls</a></li>
     <li><a href="#level">The comic page and levels</a></li>
+    <li><a href="#climb">Climb mode</a></li>
     <li><a href="#tuning">Tuning reference</a></li>
     <li><a href="#deploy">Deployment</a></li>
     <li><a href="#working">Working on Margins</a></li>
@@ -138,7 +139,8 @@
   of panels with a title, and each panel is a level. The stick figure walks along the bottom line and
   <strong>jumps up into a panel</strong> to play it. The first strip, <em>Getting Started</em>, has one panel:
   a tutorial where the page draws itself as you walk, the word JUMP is the obstacle, and a sleeping dog
-  waits at the end.
+  waits at the end. The second strip, <em>Climb</em>, is a different <strong>mode</strong>: an endless vertical
+  bouncer played in <strong>portrait</strong>. The comic page is how you pick between them.
 </p>
 <p>
   Margins is a small proof of concept, built for learning and fun. It uses
@@ -155,6 +157,14 @@
   <tr><td>Jump higher</td><td>Hold the jump key</td><td>Hold ▲</td></tr>
 </table></div>
 <p>Tap jump for a small hop, or hold it for the full jump.</p>
+<h3>Climb (portrait)</h3>
+<div class="table-wrap"><table>
+  <tr><th>Action</th><th>Desktop</th><th>Phone (upright)</th></tr>
+  <tr><td>Steer</td><td>Arrow keys, or A / D</td><td>Hold the left or right half of the screen</td></tr>
+  <tr><td>Bounce</td><td colspan="2">Automatic: landing on a line bounces you up</td></tr>
+  <tr><td>Again (after falling)</td><td>Enter or Space</td><td>Tap ↻</td></tr>
+  <tr><td>Back to the comic page</td><td>Esc (any time)</td><td>Tap ◀ after falling</td></tr>
+</table></div>
 <p>On phones you can hold a direction and tap jump at the same time, and slide your thumb between ◀ and ▶.</p>
 
 <h2 id="running">Running it</h2>
@@ -193,11 +203,12 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
     ├── config.js           Every tunable number and color
     ├── pencil.js           Seeded random + wobbly pencil helpers (the boil)
     ├── input.js            PlayerInput: keyboard + touch → { left, right, jump, jumpHeld }
-    ├── screen.js           Fit any screen shape; paper-colored fades between scenes
-    ├── progress.js         Which panels are finished (remembered on this device)
+    ├── screen.js           Landscape/portrait layouts, fit any screen shape, paper fades
+    ├── progress.js         Finished panels and best scores (remembered on this device)
     ├── scenes/
     │   ├── ComicPageScene.js       The comic page: strips of panels you jump into
-    │   └── GettingStartedScene.js  The first tutorial panel
+    │   ├── GettingStartedScene.js  The first tutorial panel
+    │   └── ClimbScene.js           Climb mode: bounce, camera, score, score card
     └── objects/
         ├── Paper.js        Static background (paper, ruled lines, margin, holes) + lineY()
         ├── Platforms.js    Static physics bodies + boiling pencil traces for line segments
@@ -206,6 +217,8 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
         ├── ComicPanel.js   A comic panel: frame, art, and "did he jump in?"
         ├── Dog.js          The doodle dog (plus drawDog / drawHeart for panel art)
         ├── DrawingPencil.js  The pencil that draws the line ahead of the figure
+        ├── ClimbCourse.js  Climb's platforms, springboards, and stars (generated as you rise)
+        ├── ScrollingPaper.js  Climb's endless notebook page
         ├── CoffeeRing.js   A coffee ring stain
         └── TouchControls.js  On-screen buttons for phones</code></pre>
 
@@ -219,6 +232,7 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
   <tr><td><code>ComicPageScene</code></td><td><code>ComicPage</code></td><td>The comic page. Jumping into a panel zooms the camera into it and starts that panel's level.
     Coming back (<code>{ returningFrom: panelId }</code>) zooms out and fades in the panel's finished art.</td></tr>
   <tr><td><code>GettingStartedScene</code></td><td><code>GettingStarted</code></td><td>The first tutorial panel. Waking the dog marks the panel finished and returns to the comic page.</td></tr>
+  <tr><td><code>ClimbScene</code></td><td><code>Climb</code></td><td>Climb mode, in portrait. Esc or the ◀ button returns to the comic page.</td></tr>
 </table></div>
 <p>Phaser calls two methods on the running scene:</p>
 <ul>
@@ -356,6 +370,15 @@ export function boilRng(timeMs, id) {
 
 <h2 id="screens">Fitting any screen</h2>
 <p>
+  Each scene starts by choosing its <strong>layout</strong> with <code>useLayout(this, LANDSCAPE)</code> or
+  <code>useLayout(this, PORTRAIT)</code> (<code>screen.js</code>). The story scenes are designed in 960 × 540;
+  Climb is designed in 540 × 960. <code>useLayout()</code> changes the design size in the game config and
+  refreshes the scale manager, so EXPAND rescales the whole game. It also sets
+  <code>&lt;body data-orientation&gt;</code>, which <code>index.html</code> uses to show a wordless
+  "turn your phone" drawing when a phone is held the wrong way for the current scene.
+</p>
+<p>For the landscape scenes:</p>
+<p>
   The level is laid out in a <strong>960 × 540</strong> area (16:9) that is always fully visible. The game
   uses <code>Phaser.Scale.EXPAND</code>: it scales that area to the screen, then grows the game in
   whichever direction has room left over, so there are never black bars.
@@ -368,6 +391,8 @@ export function boilRng(timeMs, id) {
   <li><code>fitToScreen()</code> also resets the physics world bounds. It runs at start and on every Phaser
     <code>resize</code> event (rotation, the mobile address bar hiding, a resized window). The listener is
     removed on scene shutdown so restarts don't stack up duplicates.</li>
+  <li>Climb handles its own camera (it scrolls up forever) and centers its 540-wide page on wider screens,
+    with the desk showing on either side. It passes its own fit function: <code>watchScreen(this, fit)</code>.</li>
   <li>Anything pinned to the <em>screen</em> rather than the page (like the touch buttons) uses
     <code>this.scale.width/height</code> and <code>setScrollFactor(0)</code>.</li>
 </ul>
@@ -379,6 +404,11 @@ export function boilRng(timeMs, id) {
   and checks which buttons a finger is currently over (with a hit area 1.25× the drawn circle). That
   handles multi-touch and sliding a thumb between buttons with no extra bookkeeping.
   <code>main.js</code> sets <code>input.activePointers: 3</code> so several fingers are tracked at once.
+</p>
+<p>
+  Climb uses the <code>'steer'</code> layout (<code>new PlayerInput(scene, { touchLayout: 'steer' })</code>): no jump
+  button, and holding anywhere on the left or right half of the screen steers. Two faint arrows at the
+  bottom corners show how. Big targets are kinder to small hands.
 </p>
 <p>
   The jump button is converted into a single-frame press in <code>PlayerInput.read()</code> (<code>input.js</code>) (down now,
@@ -437,6 +467,38 @@ export function boilRng(timeMs, id) {
   the 960 × 540 area, since on a 16:9 screen nothing outside it is visible.
 </p>
 
+<h2 id="climb">Climb mode</h2>
+<p>
+  An endless vertical platformer in portrait. The figure bounces automatically every time it lands on a
+  platform; you only steer. The camera follows upward and never scrolls back down, so falling off the
+  bottom of the screen ends the run. The design notes are in
+  <code>docs/superpowers/specs/2026-11-02-climb-mode-design.md</code>.
+</p>
+<ul>
+  <li><strong>Bouncing.</strong> The player–platform collider calls <code>ClimbScene.bounce()</code> when the figure
+    lands on top of a platform, which sets its upward speed to <code>bounceSpeed</code> (about 5 ruled lines high).
+    Platforms are one-way, so it rises up through them. The run starts on a solid floor line.</li>
+  <li><strong>The page.</strong> <code>ScrollingPaper</code> draws only the visible part of an endless 540-wide sheet:
+    ruled lines at every multiple of 36 px, the red margin at x = 50 (the left wall), and repeating hole punches.
+    The world bounds make the margin and the right page edge walls, with no top or bottom.</li>
+  <li><strong>Generation.</strong> <code>ClimbCourse</code> keeps a screen's worth of platforms ready above the camera.
+    Each new one sits 1–4 ruled lines above the last, is 70–130 px wide, and its center is at most 200 px
+    sideways from the previous one, so every platform is reachable. Platforms far below the screen are removed.</li>
+  <li><strong>Springboard.</strong> 10% of platforms carry a pencil spring. Landing on it launches at
+    <code>springSpeed</code> (about 18 lines) and the coil squashes.</li>
+  <li><strong>Stars.</strong> 30% of the other platforms have a doodle star floating above. Touch it to collect it
+    (it floats up and fades).</li>
+  <li><strong>Score</strong> = ruled lines climbed (the highest point reached) + 10 per star. It's written in pencil
+    digits at the top while you play. Falling shows a score card with the total, ↑ lines, ★ stars, and
+    ↻ / ◀ buttons. The best score is saved on the device and written in the Climb panel's corner.</li>
+  <li><strong>No words.</strong> Climb uses only numbers and pictures, following the Jack test.</li>
+</ul>
+<div class="table-wrap"><table>
+  <tr><th>Measure</th><th>Value</th></tr>
+  <tr><td>Bounce height</td><td>720² ÷ (2 × 1400) ≈ 185 px ≈ 5 ruled lines (so the max gap of 4 lines is always reachable)</td></tr>
+  <tr><td>Springboard height</td><td>1350² ÷ (2 × 1400) ≈ 650 px ≈ 18 ruled lines</td></tr>
+</table></div>
+
 <h2 id="tuning">Tuning reference</h2>
 <p>All of these live in <code>src/config.js</code>.</p>
 <div class="table-wrap"><table>
@@ -452,6 +514,15 @@ export function boilRng(timeMs, id) {
   <tr><td><code>PAPER.lineSpacing</code></td><td>36</td><td>Distance between ruled lines. Moves every platform.</td></tr>
   <tr><td><code>PAPER.marginX</code></td><td>110</td><td>The red margin line and the wall.</td></tr>
   <tr><td><code>TOUCH.buttonRadius / alpha</code></td><td>46 / 0.55</td><td>Size and opacity of the phone buttons.</td></tr>
+  <tr><td><code>CLIMB.bounceSpeed</code></td><td>720</td><td>Climb: upward speed after landing. Keep the bounce higher than <code>maxGapLines</code> ruled lines.</td></tr>
+  <tr><td><code>CLIMB.springSpeed</code></td><td>1350</td><td>Climb: upward speed from a springboard.</td></tr>
+  <tr><td><code>CLIMB.steerSpeed</code></td><td>280</td><td>Climb: left/right speed.</td></tr>
+  <tr><td><code>CLIMB.minGapLines / maxGapLines</code></td><td>1 / 4</td><td>Climb: ruled lines between one platform and the next.</td></tr>
+  <tr><td><code>CLIMB.platformMinWidth / platformMaxWidth</code></td><td>70 / 130</td><td>Climb: platform widths.</td></tr>
+  <tr><td><code>CLIMB.maxSideStep</code></td><td>200</td><td>Climb: how far sideways a platform can be from the last one.</td></tr>
+  <tr><td><code>CLIMB.springChance / tokenChance</code></td><td>0.1 / 0.3</td><td>Climb: how often platforms get a springboard or a star.</td></tr>
+  <tr><td><code>CLIMB.tokenValue</code></td><td>10</td><td>Climb: points per star (each ruled line is 1 point).</td></tr>
+  <tr><td><code>CLIMB.cameraLead</code></td><td>0.4</td><td>Climb: how far down the screen the figure stays while rising.</td></tr>
   <tr><td><code>COLORS.*</code></td><td>—</td><td>Paper, ruled line, margin, pencil, and coffee colors.</td></tr>
 </table></div>
 
@@ -459,7 +530,8 @@ export function boilRng(timeMs, id) {
 <ul>
   <li>Set <code>debug: true</code> under <code>physics.arcade</code> in <code>src/main.js</code> to see the physics boxes.</li>
   <li>In dev mode the game is exposed as <code>window.game</code>. Try
-    <code>game.scene.getScene('GettingStarted').player</code> in the browser console.</li>
+    <code>game.scene.getScene('GettingStarted').player</code> in the browser console, or jump straight to a mode
+    with <code>game.scene.getScene('ComicPage').scene.start('Climb')</code>.</li>
 </ul>
 
 <h2 id="deploy">Deployment</h2>

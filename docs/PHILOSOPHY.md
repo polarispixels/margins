@@ -105,6 +105,9 @@ challenges can come in later strips.
 When a panel is finished, it shows a little drawing of what happened, so the comic
 page tells the story of what you've played.
 
+The comic page is also how you pick a **mode**: the "Climb" strip's panel opens the
+endless climbing game. New modes get their own strip rather than a separate menu.
+
 ## Not yet (scope discipline)
 
 Great ideas we're deliberately saving for later, so we don't build ahead of
@@ -120,7 +123,8 @@ ourselves:
 - Installing to a phone or tablet home screen, and other ways to distribute it
 - The original staircase level (climb the ruled lines to a coffee ring), retired when
   the comic page arrived; it's in git history and could come back as a panel
-- The dog following the figure into later strips; counting stars
+- The dog following the figure into later strips; counting stars in Getting Started
+- Climb: enemies, more platform and collectible types, moving or breaking platforms
 
 Add new "someday" ideas to this list instead of building them. Move something out
 of this list only when we decide to work on it.

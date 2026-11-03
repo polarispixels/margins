@@ -22,6 +22,9 @@ and what's deliberately out of scope for now.
 - The first strip, "Getting Started", has one panel (`GettingStartedScene`): the line
   draws itself as you walk (WALK), the word JUMP is a solid obstacle, and a sleeping dog
   waits at the end. Finished panels show their story art (saved in `progress.js`).
+- The second strip, "Climb", is a separate **mode** (`ClimbScene`): an endless vertical
+  bouncer played in **portrait**. The figure bounces automatically on landing; the player
+  only steers. Score = ruled lines climbed + 10 per star. The comic page is the mode picker.
 - This is a learning / for-fun proof of concept. Keep it small.
 
 ## Tech stack
@@ -48,11 +51,12 @@ margins/
     ├── config.js           # All tunable numbers and colors live here
     ├── pencil.js           # Seeded random + wobbly "pencil" drawing helpers (the boil)
     ├── input.js            # PlayerInput: keyboard + touch -> { left, right, jump, jumpHeld }
-    ├── screen.js           # Fit any screen shape (watchScreen); paper-colored scene fades
-    ├── progress.js         # Finished panels, in localStorage (best effort)
+    ├── screen.js           # useLayout (landscape/portrait), watchScreen, paper-colored fades
+    ├── progress.js         # Finished panels and best scores, in localStorage (best effort)
     ├── scenes/
     │   ├── ComicPageScene.js       # The comic page (start scene): jump into a panel
-    │   └── GettingStartedScene.js  # The first tutorial panel
+    │   ├── GettingStartedScene.js  # The first tutorial panel
+    │   └── ClimbScene.js           # Climb mode (portrait): bounce, camera, score, score card
     └── objects/
         ├── Paper.js        # Static background: paper, ruled lines, margin, holes; lineY()
         ├── Platforms.js    # Line segments (+ addSolid boxes): physics + boiling pencil trace
@@ -61,6 +65,8 @@ margins/
         ├── ComicPanel.js   # A comic panel: frame, art, and the jump-in trigger
         ├── Dog.js          # The doodle dog; drawDog/drawHeart for panel art
         ├── DrawingPencil.js# The pencil that draws the line ahead of the figure
+        ├── ClimbCourse.js  # Climb's random platforms, springboards, stars
+        ├── ScrollingPaper.js # Climb's endless notebook page
         ├── CoffeeRing.js   # A coffee ring stain
         └── TouchControls.js# On-screen left / right / jump buttons for phones
 ```
@@ -80,6 +86,17 @@ and `jumpCutMultiplier` under `PLAYER` in `src/config.js`. Input arrives as
 `{ left, right, jump, jumpHeld }` from `PlayerInput.read()` (`src/input.js`), built from both
 keyboard and touch, so any new input source must fill in both `jump` (pressed this
 frame) and `jumpHeld`. Design notes: `docs/superpowers/specs/2026-11-02-jump-feel-design.md`.
+
+## Climb mode
+
+`ClimbScene` switches the game to a 540x960 portrait design area with
+`useLayout(this, PORTRAIT)`; the story scenes switch back with `LANDSCAPE`. It runs its
+own camera (up only) and passes its own fit function to `watchScreen`. `ClimbCourse`
+generates platforms on ruled lines a screen ahead and removes them far below; every
+platform is within reach of the previous one (gap <= `maxGapLines`, sideways <=
+`maxSideStep`). All tunables are under `CLIMB` in `src/config.js`. Touch uses
+`PlayerInput`'s `'steer'` layout (hold either half of the screen). Design notes:
+`docs/superpowers/specs/2026-11-02-climb-mode-design.md`.
 
 ## Running it
 
@@ -124,6 +141,8 @@ The WSL IP can change after a reboot; rerun the portproxy line if it stops worki
 - Put magic numbers in `src/config.js`, not scattered through the code. (Layout numbers
   that only make sense for one scene, like where a panel sits, can live at the top of
   that scene's file.)
+- Every scene starts with `useLayout(this, LANDSCAPE | PORTRAIT)` so the design size and
+  the phone rotate hint match it.
 - Every scene calls `watchScreen(this)` and uses `PlayerInput`, so screen fitting and
   controls behave the same everywhere. On-screen words use `PencilWord` and must pass
   the philosophy's "Jack test".

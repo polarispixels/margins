@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { WIDTH, HEIGHT, COLORS, PLAYER } from './config.js';
 import { ComicPageScene } from './scenes/ComicPageScene.js';
 import { GettingStartedScene } from './scenes/GettingStartedScene.js';
+import { ClimbScene } from './scenes/ClimbScene.js';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO, // WebGL if available, otherwise Canvas
@@ -27,7 +28,7 @@ const game = new Phaser.Game({
     activePointers: 3, // allow e.g. holding "right" and tapping "jump" at once
   },
   // The first scene in the list starts the game.
-  scene: [ComicPageScene, GettingStartedScene],
+  scene: [ComicPageScene, GettingStartedScene, ClimbScene],
 });
 
 // In development, expose the game so you can poke at it from the browser console,

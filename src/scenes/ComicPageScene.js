@@ -1,8 +1,9 @@
-// The comic page: the game's "menu", drawn like a comic strip in a notebook.
+// The comic page: the game's "menu", drawn like comic strips in a notebook.
 //
-// Each strip is a row of panels with a title above it, and each panel is a level.
-// The stick figure walks along the bottom line and jumps up into a panel to play it.
-// For now there's one strip, "Getting Started", with one panel.
+// Each strip is a row of panels with a title above it, and each panel is a level
+// or a mode. The stick figure walks along the bottom line and jumps up into a
+// panel to play it. For now there are two strips side by side, one panel each:
+// "Getting Started" (the story tutorial) and "Climb" (the endless bouncer).
 
 import Phaser from 'phaser';
 import { PAGE_MAX_WIDTH, PAPER, HEIGHT } from '../config.js';
@@ -12,55 +13,70 @@ import { StickFigure } from '../objects/StickFigure.js';
 import { ComicPanel } from '../objects/ComicPanel.js';
 import { PencilWord } from '../objects/PencilWord.js';
 import { PlayerInput } from '../input.js';
-import { watchScreen, fitToScreen } from '../screen.js';
-import { isComplete } from '../progress.js';
+import { useLayout, LANDSCAPE, watchScreen, fitToScreen } from '../screen.js';
+import { isComplete, bestScore } from '../progress.js';
 import { PANEL_ID as GETTING_STARTED } from './GettingStartedScene.js';
+import { MODE_ID as CLIMB } from './ClimbScene.js';
 
 const FLOOR_LINE = 12;
-const START_X = 170;
+const START_X = 160;
 const ZOOM_MS = 700;
+const TITLE_SIZE = 24;
 
-// The strip's title and its one panel. The panel's bottom edge sits just above
-// the figure's head, so even a quick tap-jump reaches it.
-const STRIP_TITLE = 'GETTING STARTED';
-const PANEL = { id: GETTING_STARTED, scene: 'GettingStarted', x: 330, y: 118, width: 300, height: 298 };
+// One entry per strip. The panels' bottom edges sit just above the figure's
+// head, so even a quick tap-jump reaches them.
+const PANELS = [
+  { id: GETTING_STARTED, title: 'GETTING STARTED', scene: 'GettingStarted', x: 190, y: 118, width: 250, height: 298 },
+  { id: CLIMB, title: 'CLIMB', scene: 'Climb', x: 560, y: 118, width: 250, height: 298 },
+];
 
 export class ComicPageScene extends Phaser.Scene {
   constructor() {
     super('ComicPage');
   }
 
-  // data.returningFrom is set when we come back from a finished level.
+  // data.returningFrom is a panel id when we come back from a level or mode.
   create(data = {}) {
     this.entering = false;
     this.physics.resume(); // in case it was paused while zooming into a panel
+    useLayout(this, LANDSCAPE); // Climb switches to portrait; switch back
     const floorY = lineY(FLOOR_LINE);
-    const returning = data.returningFrom === PANEL.id;
 
     drawPaper(this);
     this.platforms = new Platforms(this, [{ line: FLOOR_LINE, from: PAPER.marginX, to: PAGE_MAX_WIDTH }]);
 
-    // The strip title goes in the header space above the first ruled line.
-    this.panel = new ComicPanel(this, PANEL, { completed: isComplete(PANEL.id) && !returning });
-    this.title = new PencilWord(this, STRIP_TITLE, this.panel.centerX, 22, 34, { align: 'center' });
-
-    // One word at a time: WALK first, then JUMP once he's standing under the panel.
-    this.walkWord = new PencilWord(this, 'WALK', START_X - 40, floorY - 150, 40, { written: false });
-    this.jumpWord = new PencilWord(this, 'JUMP', this.panel.centerX, this.panel.bottom - 50, 36, {
-      align: 'center',
-      written: false,
+    // Each strip: a panel, its title in the header space above the first ruled
+    // line, and a JUMP word written inside the panel when the figure is under it.
+    this.strips = PANELS.map((def) => {
+      const justFinished = data.returningFrom === def.id && def.id === GETTING_STARTED;
+      const panel = new ComicPanel(this, def, {
+        art: def.id,
+        // A panel that was just finished starts blank and fades its art in after the zoom out.
+        completed: isComplete(def.id) && !justFinished,
+        best: bestScore(def.id),
+      });
+      return {
+        def,
+        panel,
+        justFinished,
+        title: new PencilWord(this, def.title, panel.centerX, 28, TITLE_SIZE, { align: 'center' }),
+        jumpWord: new PencilWord(this, 'JUMP', panel.centerX, panel.bottom - 50, 36, { align: 'center', written: false }),
+      };
     });
-    this.walkFaded = false;
 
-    // Coming back from a level, he stands right under the panel he just finished.
-    const startX = returning ? this.panel.centerX : START_X;
+    // One word at a time: WALK first, then JUMP under whichever panel he's at.
+    this.walkWord = new PencilWord(this, 'WALK', START_X - 40, floorY - 150, 40, { written: false });
+
+    // Coming back, he stands right under the panel he just left.
+    const from = this.strips.find((s) => s.def.id === data.returningFrom);
+    const startX = from ? from.panel.centerX : START_X;
     this.player = new StickFigure(this, startX, floorY - 30);
     this.controls = new PlayerInput(this);
     this.physics.add.collider(this.player.zone, this.platforms.group);
 
     watchScreen(this);
-    if (returning) {
-      this.zoomOutOfPanel();
+    if (from) {
+      this.zoomOutOf(from);
     } else {
       this.walkWord.write(900);
     }
@@ -70,63 +86,65 @@ export class ComicPageScene extends Phaser.Scene {
     if (!this.entering) {
       this.player.update(this.controls.read(), delta / 1000);
       this.updateWords();
-      if (this.panel.isEnteredBy(this.player)) this.enterPanel();
+      const entered = this.strips.find((s) => s.panel.isEnteredBy(this.player));
+      if (entered) this.enter(entered);
     }
 
     this.platforms.draw(time);
-    this.panel.draw(time);
-    this.title.draw(time);
     this.walkWord.draw(time);
-    this.jumpWord.draw(time);
+    for (const strip of this.strips) {
+      strip.panel.draw(time);
+      strip.title.draw(time);
+      strip.jumpWord.draw(time);
+    }
     this.player.draw(time);
     this.controls.draw(time);
   }
 
   updateWords() {
     const x = this.player.body.center.x;
-    if (!this.walkFaded && (x > START_X + 80 || x < START_X - 80)) {
-      this.walkWord.fadeOut();
-      this.walkFaded = true;
-    }
-    const underPanel = x > this.panel.x && x < this.panel.x + this.panel.width;
-    if (underPanel && this.jumpWord.progress === 0) {
-      if (!this.walkFaded) {
-        this.walkWord.fadeOut();
-        this.walkFaded = true;
+    if (this.walkWord.shown && Math.abs(x - START_X) > 80) this.walkWord.fadeOut();
+
+    for (const strip of this.strips) {
+      const under = x > strip.panel.x && x < strip.panel.x + strip.panel.width;
+      if (under && !strip.jumpWord.shown) {
+        // Clear any other word first, so there's only ever one on the page.
+        if (this.walkWord.shown) this.walkWord.fadeOut();
+        for (const other of this.strips) if (other.jumpWord.shown) other.jumpWord.fadeOut();
+        strip.jumpWord.write(600);
       }
-      this.jumpWord.write(600);
     }
   }
 
-  // How much to zoom so the panel fills the screen.
-  panelZoom() {
-    return Math.min(this.scale.width / this.panel.width, this.scale.height / this.panel.height);
+  // How much to zoom so a panel fills the screen.
+  zoomFor(panel) {
+    return Math.min(this.scale.width / panel.width, this.scale.height / panel.height);
   }
 
-  // Jumped into the panel: zoom the camera into it, then start its level.
-  enterPanel() {
+  // Jumped into a panel: zoom the camera into it, then start its scene.
+  enter(strip) {
     this.entering = true;
     this.physics.pause();
     const cam = this.cameras.main;
-    cam.pan(this.panel.centerX, this.panel.centerY, ZOOM_MS, 'Sine.easeInOut');
-    cam.zoomTo(this.panelZoom(), ZOOM_MS, 'Sine.easeInOut');
-    this.time.delayedCall(ZOOM_MS + 50, () => this.scene.start(PANEL.scene));
+    cam.pan(strip.panel.centerX, strip.panel.centerY, ZOOM_MS, 'Sine.easeInOut');
+    cam.zoomTo(this.zoomFor(strip.panel), ZOOM_MS, 'Sine.easeInOut');
+    this.time.delayedCall(ZOOM_MS + 50, () => this.scene.start(strip.def.scene));
   }
 
-  // Back from a level: start zoomed into the panel, zoom out, then draw in the
-  // finished art for the panel.
-  zoomOutOfPanel() {
+  // Back from a panel: start zoomed into it and zoom out. If it was just
+  // finished, its finished art then fades in.
+  zoomOutOf(strip) {
     this.entering = true;
     const cam = this.cameras.main;
-    cam.setZoom(this.panelZoom());
-    cam.centerOn(this.panel.centerX, this.panel.centerY);
+    cam.setZoom(this.zoomFor(strip.panel));
+    cam.centerOn(strip.panel.centerX, strip.panel.centerY);
     // Where the camera normally looks (see screen.js): the bottom of the page.
     cam.pan(this.scale.width / 2, HEIGHT - this.scale.height / 2, ZOOM_MS, 'Sine.easeInOut');
     cam.zoomTo(1, ZOOM_MS, 'Sine.easeInOut');
     this.time.delayedCall(ZOOM_MS + 50, () => {
       fitToScreen(this); // snap exactly back to the normal view
       this.entering = false;
-      this.panel.showCompleted();
+      if (strip.justFinished) strip.panel.showCompleted();
     });
   }
 }

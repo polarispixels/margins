@@ -5,6 +5,12 @@ pencil and "boils" like a hand-drawn flipbook. The blue ruled lines are
 platforms and the red margin line is a wall. Levels are panels in a comic strip
 drawn in the notebook: jump up into a panel to play it.
 
+Two modes, picked on the comic page:
+
+- **Getting Started:** a short tutorial that teaches walking and jumping.
+- **Climb:** an endless vertical bouncer, played in portrait. Steer left and right
+  as the figure bounces up the page; collect stars and use springboards.
+
 A small proof of concept built with Phaser 4, Vite, and plain JavaScript. No
 image assets: everything is drawn procedurally.
 
@@ -21,6 +27,8 @@ image assets: everything is drawn procedurally.
 | --- | --- | --- |
 | Walk | Arrow keys or A / D | On-screen ◀ ▶ buttons |
 | Jump | Space (or Up / W) | On-screen ▲ button |
+| Climb: steer | Arrow keys or A / D | Hold the left or right half of the screen |
+| Climb: again / back | Enter or Space / Esc | ↻ / ◀ on the score card |
 
 ## Quick start
 

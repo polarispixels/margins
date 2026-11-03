@@ -1,20 +1,31 @@
 // One panel of a comic strip: a hand-drawn box you jump into to play a level.
 //
-// Before the level is finished, the panel shows a faint sketch (a little guy on
-// a line). After, it shows what happened: the guy, his new dog, and a heart.
+// Its art depends on which panel it is:
+//   'getting-started': before the level is finished, a faint sketch (a little guy
+//                      on a line); after, what happened: the guy, his dog, a heart.
+//   'climb':           a little guy bouncing up short lines past a spring and a
+//                      star, with the best score written in the corner.
 
 import { COLORS } from '../config.js';
-import { boilRng, pencilLine, pencilCircle } from '../pencil.js';
+import { boilRng, pencilLine, pencilCircle, pencilPolyline } from '../pencil.js';
 import { drawDog, drawHeart } from './Dog.js';
+import { drawStar } from './ClimbCourse.js';
+import { PencilWord } from './PencilWord.js';
 
 export class ComicPanel {
-  // rect: { x, y, width, height } (top-left corner and size)
-  constructor(scene, rect, { completed = false } = {}) {
-    Object.assign(this, rect);
+  // rect: { x, y, width, height } (top-left corner and size). Options: art ('getting-started' or 'climb'),
+  // completed (show the finished art), best (a best score to write, if any).
+  constructor(scene, rect, { art = 'getting-started', completed = false, best = 0 } = {}) {
+    this.x = rect.x;
+    this.y = rect.y;
+    this.width = rect.width;
+    this.height = rect.height;
+    this.art = art;
     this.completed = completed;
     this.frameGraphics = scene.add.graphics();
     this.artGraphics = scene.add.graphics();
     this.scene = scene;
+    this.bestWord = best > 0 ? new PencilWord(scene, String(best), this.x + 14, this.y + 14, 22) : null;
   }
 
   get centerX() {
@@ -61,7 +72,9 @@ export class ComicPanel {
     const art = this.artGraphics;
     art.clear();
     const groundY = y + h * 0.62;
-    if (this.completed) {
+    if (this.art === 'climb') {
+      this.drawClimbArt(art, rng, time);
+    } else if (this.completed) {
       // The story so far: the little guy and his dog, and a heart between them.
       pencilLine(art, rng, x + 20, groundY, x + w - 20, groundY, { color: COLORS.pencil, width: 2.5 });
       drawStandingFigure(art, rng, this.centerX - 45, groundY);
@@ -73,6 +86,31 @@ export class ComicPanel {
       pencilLine(art, rng, x + 20, groundY, this.centerX, groundY, faint);
       drawStandingFigure(art, rng, x + 60, groundY, faint);
     }
+  }
+
+  // Short lines climbing up the panel, a spring, a star, and a little guy mid-bounce.
+  drawClimbArt(g, rng, time) {
+    const style = { color: COLORS.pencil, width: 2.5 };
+    const { x, y } = this;
+    const steps = [
+      { x: 40, y: 200, w: 70 },
+      { x: 130, y: 150, w: 70 },
+      { x: 50, y: 100, w: 60 },
+      { x: 140, y: 50, w: 60 },
+    ];
+    for (const st of steps) pencilLine(g, rng, x + st.x, y + st.y, x + st.x + st.w, y + st.y, style);
+    // A spring on the lowest line.
+    const sx = x + 90;
+    const sy = y + 200;
+    pencilPolyline(g, rng, [
+      { x: sx - 8, y: sy }, { x: sx + 8, y: sy - 4 }, { x: sx - 8, y: sy - 8 }, { x: sx + 8, y: sy - 12 },
+    ], { ...style, width: 2 });
+    pencilLine(g, rng, sx - 11, sy - 13, sx + 11, sy - 13, style);
+    drawStar(g, rng, x + 80, y + 70, 10);
+    // The little guy, bobbing up and down as if bouncing.
+    const bob = Math.abs(Math.sin(time / 260)) * 14;
+    drawStandingFigure(g, rng, x + 170, y + 150 - 6 - bob, { color: COLORS.pencil, width: 2.5 });
+    if (this.bestWord) this.bestWord.draw(time);
   }
 }
 
