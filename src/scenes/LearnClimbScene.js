@@ -11,7 +11,7 @@
 // where the player can really go. Heights are counted in ruled lines above the floor.
 
 import Phaser from 'phaser';
-import { HEIGHT, PAGE_MAX_WIDTH, PAPER, LEARN } from '../config.js';
+import { HEIGHT, PAGE_MAX_WIDTH, PAPER, PLAYER, LEARN } from '../config.js';
 import { drawPaper, lineY } from '../objects/Paper.js';
 import { Platforms } from '../objects/Platforms.js';
 import { StickFigure } from '../objects/StickFigure.js';
@@ -38,6 +38,8 @@ const FOLLOW_FRACTION = 0.7; // the figure's feet sit this far down the screen
 const CAT_MARGIN = 110; // keep the cat at least this far below the top of the screen
 const FEET_MARGIN = 30; // and the figure's feet at least this far above the bottom
 const LAUNCH_COOLDOWN_MS = 500;
+const PLAYER_HALF = PLAYER.bodyHeight / 2;
+const PLAYER_HALF_WIDTH = PLAYER.bodyWidth / 2;
 
 // Heights, in ruled lines above the floor.
 const H = { ladder1: 7, spring: 14, paperclip: 25, drop: 19, top: 27 };
@@ -70,8 +72,9 @@ export class LearnClimbScene extends Phaser.Scene {
     this.pageHeight = lineY(PAGE_LINES);
     drawPaper(this, { bottom: this.pageHeight });
 
-    this.platforms = new Platforms(this, SEGMENTS);
-    // The page's right edge is a wall (the left edge is the red margin).
+    this.platforms = new Platforms(this, SEGMENTS, { wall: false }); // the built-in margin wall is too short for this tall page
+    // Walls along the red margin and the right edge, the whole height of the page.
+    this.platforms.addSolid(PAPER.marginX - WALL_WIDTH, -HEIGHT, WALL_WIDTH, this.pageHeight + HEIGHT);
     this.platforms.addSolid(PAGE_RIGHT, -HEIGHT, WALL_WIDTH, this.pageHeight + HEIGHT);
 
     this.ladders = [
@@ -110,6 +113,7 @@ export class LearnClimbScene extends Phaser.Scene {
       ],
     });
     this.meowCount = 0;
+    this.upWordShown = false;
 
     this.player = new StickFigure(this, START_X, up(0) - PLAYER_HALF);
     this.controls = new PlayerInput(this);
@@ -204,9 +208,9 @@ export class LearnClimbScene extends Phaser.Scene {
     const { climb, up: upWord } = this.words;
     const climbed = body.bottom < up(0) - 90;
     if (climb.shown && climbed) climb.fadeOut();
-    const nearSpring = !upWord.used && body.bottom > up(H.ladder1) - 4 && body.bottom < up(H.ladder1) + 4 && body.center.x > 250;
+    const nearSpring = !this.upWordShown && body.bottom > up(H.ladder1) - 4 && body.bottom < up(H.ladder1) + 4 && body.center.x > 250;
     if (nearSpring && !climb.shown) {
-      upWord.used = true;
+      this.upWordShown = true;
       upWord.write(700);
     }
     if (upWord.shown && (body.bottom < up(H.ladder1) - 100 || this.launchers[0].firedAt > 0)) upWord.fadeOut();
@@ -236,6 +240,3 @@ export class LearnClimbScene extends Phaser.Scene {
     });
   }
 }
-
-const PLAYER_HALF = 30; // half the figure's body height
-const PLAYER_HALF_WIDTH = 10;
