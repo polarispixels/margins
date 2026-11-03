@@ -153,6 +153,22 @@ export const sfx = {
   ding: (step) => tone({ note: 72 + step * 4, length: 0.3, volume: 0.2 }),
   buzz: () => tone({ type: 'sawtooth', from: 110, to: 90, length: 0.45, volume: 0.15 }),
   unlock: () => [72, 76, 79, 84].forEach((note, i) => tone({ note, start: i * 0.1, length: 0.35, volume: 0.18 })),
+  // A cat's meow: a note that rises then slides down. Variants 0..2 differ in pitch.
+  meow: (variant = 0) => {
+    const base = [620, 700, 540][variant % 3];
+    tone({ type: 'triangle', from: base * 0.8, to: base * 1.25, length: 0.14, volume: 0.16 });
+    tone({ type: 'triangle', from: base * 1.25, to: base * 0.6, start: 0.13, length: 0.3, volume: 0.16 });
+  },
+  // A soft purr: a low rumble of quick little pulses.
+  purr: () => {
+    for (let i = 0; i < 10; i++) noise({ start: i * 0.07, length: 0.06, volume: 0.1, from: 260 });
+    tone({ type: 'sine', from: 90, to: 80, length: 0.7, volume: 0.1 });
+  },
+  // A monkey's cheerful "ooh-ooh": two bouncy rising notes.
+  ooh: () => {
+    tone({ type: 'triangle', from: 380, to: 520, length: 0.13, volume: 0.18 });
+    tone({ type: 'triangle', from: 450, to: 640, start: 0.17, length: 0.17, volume: 0.18 });
+  },
   fanfare: () => {
     [60, 64, 67, 72, 76, 79, 84].forEach((note, i) => tone({ note, start: i * 0.09, length: 0.3, volume: 0.18 }));
     tone({ note: 84, start: 0.7, length: 0.9, volume: 0.2 });

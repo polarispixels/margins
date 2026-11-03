@@ -296,3 +296,10 @@ export const HOME = {
   mastheadTop: 10,
   bottomLines: 2,       // blank ruled lines under the last floor
 };
+
+// The learn levels (CLIMB and SWING): an animal leads the way.
+export const LEARN = {
+  guideSpeed: 200,         // px/s when the guide walks
+  guideWaitDistance: 140,  // the guide waits until you're this close
+  guideCallMs: 4000,       // if you dawdle this long, the guide calls to you
+};
