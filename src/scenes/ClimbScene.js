@@ -1,8 +1,8 @@
-// Climb: an endless vertical bouncer, played in portrait.
+// Climb: an endless vertical platformer, played in portrait.
 //
-// The figure bounces automatically whenever it lands on a platform; the player
-// only steers left and right. The camera follows upward and never comes back
-// down, so falling off the bottom of the screen ends the run.
+// The figure walks and jumps just like in the story levels (press up to jump).
+// Springboards launch him high when he lands on one. The camera follows upward
+// and never comes back down, so falling off the bottom of the screen ends the run.
 // Score = ruled lines climbed + CLIMB.tokenValue for each star.
 
 import Phaser from 'phaser';
@@ -39,12 +39,12 @@ export class ClimbScene extends Phaser.Scene {
     this.course = new ClimbCourse(this, FLOOR_Y);
 
     this.player = new StickFigure(this, CLIMB.width / 2, FLOOR_Y - 30);
-    this.player.runSpeed = CLIMB.steerSpeed;
-    this.controls = new PlayerInput(this, { touchLayout: 'steer' });
+    this.player.runSpeed = CLIMB.walkSpeed;
+    this.controls = new PlayerInput(this);
     this.menuKeys = this.input.keyboard.addKeys('ENTER,ESC');
 
-    // Landing on a platform bounces. The callback runs when the figure lands on one.
-    this.physics.add.collider(this.player.zone, this.course.group, (_, zone) => this.bounce(zone.platform));
+    // Stand on platforms. The callback runs when the figure lands on one, for springboards.
+    this.physics.add.collider(this.player.zone, this.course.group, (_, zone) => this.landOn(zone.platform));
 
     // Walls at the margin and the page's right edge; nothing above or below,
     // so the figure can rise forever and fall off the bottom.
@@ -66,14 +66,13 @@ export class ClimbScene extends Phaser.Scene {
     this.scoreWord?.setPosition(this.scale.width / 2, 14);
   }
 
-  bounce(platform) {
+  // Landing on a springboard launches him high. Ordinary platforms just hold him up.
+  landOn(platform) {
     const body = this.player.body;
     if (!body.touching.down && !body.blocked.down) return; // only when landing on top
     if (this.course.isOnSpring(platform, body.center.x)) {
       body.setVelocityY(-CLIMB.springSpeed);
       platform.spring.firedAt = this.time.now;
-    } else {
-      body.setVelocityY(-CLIMB.bounceSpeed);
     }
   }
 
@@ -90,9 +89,7 @@ export class ClimbScene extends Phaser.Scene {
     if (this.over) {
       if (JustDown(this.menuKeys.ENTER) || JustDown(this.controls.keys.SPACE)) return this.restart();
     } else {
-      // Steering only: no jumping in Climb; landing does the bouncing.
-      const input = this.controls.read();
-      this.player.update({ left: input.left, right: input.right, jump: false, jumpHeld: false }, delta / 1000);
+      this.player.update(this.controls.read(), delta / 1000);
 
       // The camera follows the figure up, but never back down.
       const target = this.player.body.center.y - this.scale.height * CLIMB.cameraLead;
@@ -133,9 +130,13 @@ export class ClimbScene extends Phaser.Scene {
     this.card = {
       graphics: this.add.graphics().setScrollFactor(0).setDepth(30),
       rect: { x: cx - 170, y: top, width: 340, height: 400 },
-      total: new PencilWord(this, String(total), cx, top + 40, 90, { align: 'center', fixed: true, depth: 31, lineWidth: 6 }),
-      lines: new PencilWord(this, String(lines), cx - 40, top + 175, 30, { fixed: true, depth: 31 }),
-      stars: new PencilWord(this, String(stars), cx + 80, top + 175, 30, { fixed: true, depth: 31 }),
+      // Big, but shrinks for long numbers so it always fits on the card.
+      total: new PencilWord(this, String(total), cx, top + 40, Math.min(90, 230 / String(total).length), {
+        align: 'center', fixed: true, depth: 31, lineWidth: 6,
+      }),
+      // Room for four digits after each icon, so big scores don't collide.
+      lines: new PencilWord(this, String(lines), cx - 92, top + 175, 30, { fixed: true, depth: 31 }),
+      stars: new PencilWord(this, String(stars), cx + 58, top + 175, 30, { fixed: true, depth: 31 }),
       again: { x: cx - 70, y: top + 310 },
       back: { x: cx + 70, y: top + 310 },
     };
@@ -164,21 +165,14 @@ export class ClimbScene extends Phaser.Scene {
 
     // ↑ lines climbed and ★ stars collected, as little icons.
     const iconY = rect.y + 190;
-    const ux = rect.x + rect.width / 2 - 70;
+    const ux = rect.x + rect.width / 2 - 110;
     pencilLine(g, rng, ux, iconY + 14, ux, iconY - 14, style);
     pencilPolyline(g, rng, [{ x: ux - 9, y: iconY - 5 }, { x: ux, y: iconY - 14 }, { x: ux + 9, y: iconY - 5 }], style);
-    drawStar(g, rng, rect.x + rect.width / 2 + 55, iconY, 14, { width: 2.5 });
+    drawStar(g, rng, rect.x + rect.width / 2 + 38, iconY, 14, { width: 2.5 });
 
     // Buttons: ↻ again, ◀ back.
     for (const b of [again, back]) pencilCircle(g, rng, b.x, b.y, BUTTON_RADIUS, { ...style, points: 18 });
-    const arc = [];
-    for (let i = 0; i <= 10; i++) {
-      const a = -Math.PI * 0.35 + (i / 10) * Math.PI * 1.6; // most of a circle
-      arc.push({ x: again.x + Math.cos(a) * 18, y: again.y + Math.sin(a) * 18 });
-    }
-    pencilPolyline(g, rng, arc, style);
-    const end = arc[0];
-    pencilPolyline(g, rng, [{ x: end.x - 2, y: end.y - 11 }, end, { x: end.x + 10, y: end.y - 3 }], style);
+    drawReplayIcon(g, rng, again.x, again.y, style);
     pencilPolyline(g, rng, [{ x: back.x + 8, y: back.y - 15 }, { x: back.x - 8, y: back.y }, { x: back.x + 8, y: back.y + 15 }], style);
 
     for (const word of [this.card.total, this.card.lines, this.card.stars]) word.draw(time);
@@ -195,4 +189,26 @@ export class ClimbScene extends Phaser.Scene {
     this.leaving = true;
     fadeOutToPaper(this, () => this.scene.start('ComicPage', { returningFrom: MODE_ID }));
   }
+}
+
+// ↻: a circle with a gap at the top, going clockwise, with an arrowhead at the
+// end of the curve pointing the way it's going.
+function drawReplayIcon(g, rng, cx, cy, style) {
+  const radius = 18;
+  const gap = 0.6; // radians left open at the top
+  const start = -Math.PI / 2 + gap / 2; // just right of the top...
+  const end = start + Math.PI * 2 - gap; // ...all the way round to just left of it
+  const arc = [];
+  for (let i = 0; i <= 12; i++) {
+    const a = start + (i / 12) * (end - start);
+    arc.push({ x: cx + Math.cos(a) * radius, y: cy + Math.sin(a) * radius });
+  }
+  pencilPolyline(g, rng, arc, style);
+
+  // The arrowhead: two short strokes swept back from the tip, either side of the
+  // direction the curve is heading at its end (the tangent).
+  const tip = arc[arc.length - 1];
+  const dir = Math.atan2(Math.cos(end), -Math.sin(end));
+  const wing = (offset) => ({ x: tip.x - Math.cos(dir + offset) * 9, y: tip.y - Math.sin(dir + offset) * 9 });
+  pencilPolyline(g, rng, [wing(0.6), tip, wing(-0.6)], style);
 }

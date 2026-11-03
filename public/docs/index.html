@@ -140,7 +140,7 @@
   <strong>jumps up into a panel</strong> to play it. The first strip, <em>Getting Started</em>, has one panel:
   a tutorial where the page draws itself as you walk, the word JUMP is the obstacle, and a sleeping dog
   waits at the end. The second strip, <em>Climb</em>, is a different <strong>mode</strong>: an endless vertical
-  bouncer played in <strong>portrait</strong>. The comic page is how you pick between them.
+  platformer played in <strong>portrait</strong>. The comic page is how you pick between them.
 </p>
 <p>
   Margins is a small proof of concept, built for learning and fun. It uses
@@ -160,8 +160,9 @@
 <h3>Climb (portrait)</h3>
 <div class="table-wrap"><table>
   <tr><th>Action</th><th>Desktop</th><th>Phone (upright)</th></tr>
-  <tr><td>Steer</td><td>Arrow keys, or A / D</td><td>Hold the left or right half of the screen</td></tr>
-  <tr><td>Bounce</td><td colspan="2">Automatic: landing on a line bounces you up</td></tr>
+  <tr><td>Walk</td><td>Arrow keys, or A / D</td><td>◀ ▶ buttons, bottom left</td></tr>
+  <tr><td>Jump</td><td>Up arrow (Space and W also work); hold to jump higher</td><td>▲ button, bottom right</td></tr>
+  <tr><td>Springboard</td><td colspan="2">Land on one and it launches you high</td></tr>
   <tr><td>Again (after falling)</td><td>Enter or Space</td><td>Tap ↻</td></tr>
   <tr><td>Back to the comic page</td><td>Esc (any time)</td><td>Tap ◀ after falling</td></tr>
 </table></div>
@@ -208,7 +209,7 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
     ├── scenes/
     │   ├── ComicPageScene.js       The comic page: strips of panels you jump into
     │   ├── GettingStartedScene.js  The first tutorial panel
-    │   └── ClimbScene.js           Climb mode: bounce, camera, score, score card
+    │   └── ClimbScene.js           Climb mode: camera, springboards, score, score card
     └── objects/
         ├── Paper.js        Static background (paper, ruled lines, margin, holes) + lineY()
         ├── Platforms.js    Static physics bodies + boiling pencil traces for line segments
@@ -406,9 +407,8 @@ export function boilRng(timeMs, id) {
   <code>main.js</code> sets <code>input.activePointers: 3</code> so several fingers are tracked at once.
 </p>
 <p>
-  Climb uses the <code>'steer'</code> layout (<code>new PlayerInput(scene, { touchLayout: 'steer' })</code>): no jump
-  button, and holding anywhere on the left or right half of the screen steers. Two faint arrows at the
-  bottom corners show how. Big targets are kinder to small hands.
+  The buttons are placed from the screen's corners. In landscape the arrows start just right of the
+  margin; in portrait (Climb), where the screen is narrow, they start near the left edge.
 </p>
 <p>
   The jump button is converted into a single-frame press in <code>PlayerInput.read()</code> (<code>input.js</code>) (down now,
@@ -469,22 +469,22 @@ export function boilRng(timeMs, id) {
 
 <h2 id="climb">Climb mode</h2>
 <p>
-  An endless vertical platformer in portrait. The figure bounces automatically every time it lands on a
-  platform; you only steer. The camera follows upward and never scrolls back down, so falling off the
+  An endless vertical platformer in portrait. The figure walks and jumps exactly like in the story levels
+  (same jump, jump feel, and controls). The camera follows upward and never scrolls back down, so falling off the
   bottom of the screen ends the run. The design notes are in
   <code>docs/superpowers/specs/2026-11-02-climb-mode-design.md</code>.
 </p>
 <ul>
-  <li><strong>Bouncing.</strong> The player–platform collider calls <code>ClimbScene.bounce()</code> when the figure
-    lands on top of a platform, which sets its upward speed to <code>bounceSpeed</code> (about 5 ruled lines high).
-    Platforms are one-way, so it rises up through them. The run starts on a solid floor line.</li>
+  <li><strong>Platforms</strong> are one-way, so you can jump up through them from below. The run starts on a
+    solid floor line. Walking off a platform drops you to whatever is below; falling off the screen ends the run.</li>
   <li><strong>The page.</strong> <code>ScrollingPaper</code> draws only the visible part of an endless 540-wide sheet:
     ruled lines at every multiple of 36 px, the red margin at x = 50 (the left wall), and repeating hole punches.
     The world bounds make the margin and the right page edge walls, with no top or bottom.</li>
   <li><strong>Generation.</strong> <code>ClimbCourse</code> keeps a screen's worth of platforms ready above the camera.
-    Each new one sits 1–4 ruled lines above the last, is 70–130 px wide, and its center is at most 200 px
-    sideways from the previous one, so every platform is reachable. Platforms far below the screen are removed.</li>
-  <li><strong>Springboard.</strong> 10% of platforms carry a pencil spring. Landing on it launches at
+    Each new one sits 1–3 ruled lines above the last, is 70–130 px wide, and its center is at most 170 px
+    sideways from the previous one, so every platform is reachable with a held jump (see below). Platforms far below the screen are removed.</li>
+  <li><strong>Springboard.</strong> 10% of platforms carry a pencil spring. The collider calls
+    <code>ClimbScene.landOn()</code> when the figure lands on a platform; landing on the spring launches at
     <code>springSpeed</code> (about 18 lines) and the coil squashes.</li>
   <li><strong>Stars.</strong> 30% of the other platforms have a doodle star floating above. Touch it to collect it
     (it floats up and fades).</li>
@@ -495,7 +495,8 @@ export function boilRng(timeMs, id) {
 </ul>
 <div class="table-wrap"><table>
   <tr><th>Measure</th><th>Value</th></tr>
-  <tr><td>Bounce height</td><td>720² ÷ (2 × 1400) ≈ 185 px ≈ 5 ruled lines (so the max gap of 4 lines is always reachable)</td></tr>
+  <tr><td>Held jump height</td><td>≈ 137 px ≈ 3.8 ruled lines, so the max gap of 3 lines (108 px) is always reachable</td></tr>
+  <tr><td>Sideways reach on a 3-line jump</td><td>≈ 0.65 s in the air × 260 px/s ≈ 168 px; the worst gap is 170 − 35 − 35 = 100 px edge to edge</td></tr>
   <tr><td>Springboard height</td><td>1350² ÷ (2 × 1400) ≈ 650 px ≈ 18 ruled lines</td></tr>
 </table></div>
 
@@ -514,12 +515,11 @@ export function boilRng(timeMs, id) {
   <tr><td><code>PAPER.lineSpacing</code></td><td>36</td><td>Distance between ruled lines. Moves every platform.</td></tr>
   <tr><td><code>PAPER.marginX</code></td><td>110</td><td>The red margin line and the wall.</td></tr>
   <tr><td><code>TOUCH.buttonRadius / alpha</code></td><td>46 / 0.55</td><td>Size and opacity of the phone buttons.</td></tr>
-  <tr><td><code>CLIMB.bounceSpeed</code></td><td>720</td><td>Climb: upward speed after landing. Keep the bounce higher than <code>maxGapLines</code> ruled lines.</td></tr>
   <tr><td><code>CLIMB.springSpeed</code></td><td>1350</td><td>Climb: upward speed from a springboard.</td></tr>
-  <tr><td><code>CLIMB.steerSpeed</code></td><td>280</td><td>Climb: left/right speed.</td></tr>
-  <tr><td><code>CLIMB.minGapLines / maxGapLines</code></td><td>1 / 4</td><td>Climb: ruled lines between one platform and the next.</td></tr>
+  <tr><td><code>CLIMB.walkSpeed</code></td><td>260</td><td>Climb: left/right speed.</td></tr>
+  <tr><td><code>CLIMB.minGapLines / maxGapLines</code></td><td>1 / 3</td><td>Climb: ruled lines between one platform and the next. Keep the max below a held jump (~3.8 lines).</td></tr>
   <tr><td><code>CLIMB.platformMinWidth / platformMaxWidth</code></td><td>70 / 130</td><td>Climb: platform widths.</td></tr>
-  <tr><td><code>CLIMB.maxSideStep</code></td><td>200</td><td>Climb: how far sideways a platform can be from the last one.</td></tr>
+  <tr><td><code>CLIMB.maxSideStep</code></td><td>170</td><td>Climb: how far sideways a platform can be from the last one.</td></tr>
   <tr><td><code>CLIMB.springChance / tokenChance</code></td><td>0.1 / 0.3</td><td>Climb: how often platforms get a springboard or a star.</td></tr>
   <tr><td><code>CLIMB.tokenValue</code></td><td>10</td><td>Climb: points per star (each ruled line is 1 point).</td></tr>
   <tr><td><code>CLIMB.cameraLead</code></td><td>0.4</td><td>Climb: how far down the screen the figure stays while rising.</td></tr>

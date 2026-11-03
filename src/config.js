@@ -53,19 +53,19 @@ export const TOUCH = {
   alpha: 0.55,
 };
 
-// Climb mode: an endless vertical bouncer, played in portrait.
+// Climb mode: an endless vertical platformer, played in portrait. Walking and
+// jumping use the normal PLAYER settings (jump speed, jump feel, gravity).
 export const CLIMB = {
   width: 540, // portrait design area, always fully visible
   height: 960,
   marginX: 50, // red margin line, also the left wall
-  bounceSpeed: 720, // upward speed after landing on a platform (~5 ruled lines high)
   springSpeed: 1350, // upward speed from a springboard (~18 ruled lines high)
-  steerSpeed: 280, // left/right speed in px per second
+  walkSpeed: 260, // left/right speed in px per second
   minGapLines: 1, // each new platform is this many ruled lines above the last, at least...
-  maxGapLines: 4, // ...and at most (keep below the bounce height so it's reachable)
+  maxGapLines: 3, // ...and at most. A held jump reaches ~3.8 lines, so 3 is always reachable.
   platformMinWidth: 70,
   platformMaxWidth: 130,
-  maxSideStep: 200, // max sideways distance between one platform's center and the next
+  maxSideStep: 170, // max sideways distance between one platform's center and the next
   springChance: 0.1, // chance a platform has a springboard
   tokenChance: 0.3, // chance a platform has a star above it
   tokenValue: 10, // points per star (each ruled line climbed is 1 point)

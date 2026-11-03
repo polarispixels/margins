@@ -1,4 +1,4 @@
-# Climb mode: an endless vertical bouncer, in portrait
+# Climb mode: an endless vertical platformer, in portrait
 
 **Date:** 2026-11-02 · **Status:** approved by request, implemented
 
@@ -74,3 +74,17 @@
 
 Enemies, more platform or token types, difficulty ramps beyond the gap range,
 moving or breaking platforms, sound.
+
+## Revision (2026-11-02): walk and jump instead of auto-bounce
+
+Ryan didn't like the figure bouncing continually. Climb now uses the normal
+controls: walk freely, press up (Up / Space / W, or ▲ on touch) to jump, hold for
+a higher jump. Springboards still launch automatically when landed on.
+
+- Removed `bounceSpeed` and the `'steer'` touch layout; Climb uses the standard
+  ◀ ▶ ▲ buttons (placed near the left edge in portrait).
+- `steerSpeed` → `walkSpeed` (260). Reachability now rests on the normal held jump
+  (~137 px ≈ 3.8 lines): `maxGapLines` 4 → 3, `maxSideStep` 200 → 170
+  (worst case 100 px edge to edge vs ~168 px of sideways travel on a 3-line jump).
+- The score card's ↻ icon was redrawn with the arrowhead following the curve, the
+  ↑/★ groups spaced for 4-digit numbers, and long totals shrink to fit the card.

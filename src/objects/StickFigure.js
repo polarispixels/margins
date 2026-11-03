@@ -23,7 +23,7 @@ export class StickFigure {
     this.body = this.zone.body;
     this.body.setCollideWorldBounds(true);
 
-    this.runSpeed = PLAYER.runSpeed; // a scene can change this (Climb steers a bit faster)
+    this.runSpeed = PLAYER.runSpeed; // a scene can change this (Climb walks a bit faster)
     this.facing = 1; // 1 = right, -1 = left
     this.walkPhase = 0; // advances while walking; drives the leg/arm swing
     this.scaleX = 1; // squash and stretch

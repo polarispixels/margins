@@ -64,7 +64,7 @@ export class ClimbCourse {
     const zone = this.scene.add.zone(x + width / 2, y + THICKNESS / 2, width, THICKNESS);
     this.group.add(zone);
     if (!solid) {
-      // One-way: only the top is solid, so the figure bounces up through from below.
+      // One-way: only the top is solid, so the figure can jump up through from below.
       zone.body.checkCollision.down = false;
       zone.body.checkCollision.left = false;
       zone.body.checkCollision.right = false;

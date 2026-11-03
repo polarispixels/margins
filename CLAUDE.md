@@ -23,8 +23,9 @@ and what's deliberately out of scope for now.
   draws itself as you walk (WALK), the word JUMP is a solid obstacle, and a sleeping dog
   waits at the end. Finished panels show their story art (saved in `progress.js`).
 - The second strip, "Climb", is a separate **mode** (`ClimbScene`): an endless vertical
-  bouncer played in **portrait**. The figure bounces automatically on landing; the player
-  only steers. Score = ruled lines climbed + 10 per star. The comic page is the mode picker.
+  platformer played in **portrait**, with the same walk and jump controls as the story
+  levels plus springboards. Score = ruled lines climbed + 10 per star. The comic page is
+  the mode picker.
 - This is a learning / for-fun proof of concept. Keep it small.
 
 ## Tech stack
@@ -56,7 +57,7 @@ margins/
     ├── scenes/
     │   ├── ComicPageScene.js       # The comic page (start scene): jump into a panel
     │   ├── GettingStartedScene.js  # The first tutorial panel
-    │   └── ClimbScene.js           # Climb mode (portrait): bounce, camera, score, score card
+    │   └── ClimbScene.js           # Climb mode (portrait): camera, springboards, score card
     └── objects/
         ├── Paper.js        # Static background: paper, ruled lines, margin, holes; lineY()
         ├── Platforms.js    # Line segments (+ addSolid boxes): physics + boiling pencil trace
@@ -94,8 +95,9 @@ frame) and `jumpHeld`. Design notes: `docs/superpowers/specs/2026-11-02-jump-fee
 own camera (up only) and passes its own fit function to `watchScreen`. `ClimbCourse`
 generates platforms on ruled lines a screen ahead and removes them far below; every
 platform is within reach of the previous one (gap <= `maxGapLines`, sideways <=
-`maxSideStep`). All tunables are under `CLIMB` in `src/config.js`. Touch uses
-`PlayerInput`'s `'steer'` layout (hold either half of the screen). Design notes:
+`maxSideStep`; keep `maxGapLines` below a held jump, about 3.8 lines). All tunables are
+under `CLIMB` in `src/config.js`. Walking and jumping use the normal `PLAYER` settings,
+`PlayerInput`, and touch buttons. Design notes:
 `docs/superpowers/specs/2026-11-02-climb-mode-design.md`.
 
 ## Running it
