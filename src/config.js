@@ -212,6 +212,9 @@ export const LAUNCH = {
 export const READ = {
   roundLength: 10, // words per round
   speechRate: 0.8, // tap-to-hear speaks a little slowly
+  danceMs: 1300, // the stick figure's celebration dance after a right answer...
+  danceLongMs: 2400, // ...a longer one for a hard-won answer (and at the end of a round)
+  afterDanceMs: 250, // then the next word comes after this pause
 
   // Scores: how a word's score changes after an answer.
   score: {

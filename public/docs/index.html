@@ -146,7 +146,7 @@
   order to start the rocket, then fly it to a city while dodging a fireball that bursts into fireworks. The third strip,
   <em>Climb</em>, is a different <strong>mode</strong>: an endless vertical
   platformer played in <strong>portrait</strong>. The fourth strip, <em>Read</em>, is the reading game: read a
-  word, tap its picture, and the game quietly adapts to the reader. The comic page is how you pick between them.
+  word, jump up into its picture (or tap it), and the game quietly adapts to the reader. The comic page is how you pick between them.
 </p>
 <p>
   Margins is a small proof of concept, built for learning and fun. It uses
@@ -176,7 +176,8 @@
 <h3>Read</h3>
 <div class="table-wrap"><table>
   <tr><th>Action</th><th>Desktop</th><th>Phone (landscape)</th></tr>
-  <tr><td>Pick a picture</td><td>Left / Right to choose, then Space or Enter; or 1–5</td><td>Tap the card</td></tr>
+  <tr><td>Walk</td><td>Arrow keys, or A / D</td><td>◀ ▶ buttons, bottom left</td></tr>
+  <tr><td>Pick a picture</td><td>Walk under it and jump up into it (Up, Space, or W); or 1–5</td><td>Walk under it and press ▲, or just tap the card</td></tr>
   <tr><td>Hear the word</td><td>H</td><td>Tap the speaker beside the word</td></tr>
   <tr><td>Again (after a round)</td><td>Enter or Space</td><td>Tap ↻</td></tr>
   <tr><td>Back to the comic page</td><td>Esc</td><td>Tap ◀</td></tr>
@@ -277,6 +278,7 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
         ├── puzzleArt.js    Colored-pencil hatching, switches, the clue note, the fence
         ├── CoffeeRing.js   A coffee ring stain
         ├── PictureCard.js  Read: one picture card (wiggle, fade, circle, tap test)
+        ├── dances.js       The stick figure's celebration dances (pose functions)
         ├── PencilPicture.js  Draws a picture from pictures.js in boiling pencil
         └── TouchControls.js  On-screen buttons for phones</code></pre>
 
@@ -644,9 +646,20 @@ export function boilRng(timeMs, id) {
 <p>
   The reading game, phases 1 and 2 of <code>docs/reading-framework.md</code>
   (<a href="https://github.com/polarispixels/margins/blob/main/docs/reading-framework.md">on GitHub</a>). A word is written
-  in big pencil letters; below it are 3 to 5 pencil pictures. Tap the one that matches. Right: the card is circled, a soft ding,
-  the word is spoken, and the little figure hops. Wrong: that card wiggles and fades, and you try again; there's no buzzer and
+  in big pencil letters; below it are 3 to 5 pencil pictures. Walk the stick figure under the one that matches and jump
+  up into it, like jumping into a panel on the comic page (tapping a card works too). The cards' bottom edges sit
+  just above his head, so even a small hop reaches; any card stops his head, and only one still in play is picked.
+  He starts each word in the middle, so where he stood doesn't hint at the answer. Right: the card is circled, a soft ding,
+  the word is spoken, and he does a little dance. Wrong: that card wiggles and fades, and you try again; there's no buzzer and
   nothing is lost. A round is 10 words and always ends on a right answer, then a big star and ↻ / ◀.
+</p>
+<p>
+  <strong>Dances</strong> live in <code>src/objects/dances.js</code>: arms-up wiggle, spin, kick line, disco point, shuffle,
+  floss, Carlton, and funky chicken. Each is a pose function, <code>pose(t, p)</code> (seconds in, and 0–1 through the dance),
+  that returns limb angles plus optional hip slide, lean, whole-body slide, bob, and turn (a spin). <code>StickFigure.dance(name, ms)</code>
+  plays one; while it runs he ignores walking and jumping. <code>pickDance()</code> picks at random, never the same one twice
+  in a row. Read starts the dance once he's back on the floor after bumping the card, then the next word comes. Adding a dance
+  is one new entry in that file.
 </p>
 <p>
   <strong>Tap-to-hear</strong> uses the browser's <code>speechSynthesis</code> (<code>reading/speech.js</code>). The word is only
@@ -728,6 +741,7 @@ export function boilRng(timeMs, id) {
   <tr><td><code>CLIMB.beyond</code></td><td>every 500</td><td>Climb: how difficulty keeps stepping up past the last milestone, and its limits.</td></tr>
   <tr><td><code>CLIMB.cameraLead</code></td><td>0.4</td><td>Climb: how far down the screen the figure stays while rising.</td></tr>
   <tr><td><code>READ.roundLength</code></td><td>10</td><td>Read: words per round.</td></tr>
+  <tr><td><code>READ.danceMs / danceLongMs / afterDanceMs</code></td><td>1300 / 2400 / 250</td><td>Read: the celebration dance after a right answer, the longer one for a hard-won answer or the end of a round, and the pause before the next word.</td></tr>
   <tr><td><code>READ.score</code></td><td>+12 (+8 fast) / +4 hinted / −15</td><td>Read: score changes for right, quick, hinted, and missed answers.</td></tr>
   <tr><td><code>READ.mastery</code></td><td>80, 3 days, 2 types</td><td>Read: what mastered means; <code>skillShare</code> 0.8 for a skill.</td></tr>
   <tr><td><code>READ.unlock</code></td><td>score 70, share 0.8</td><td>Read: when the next level opens.</td></tr>

@@ -3,6 +3,7 @@
 
 import { PLAYER, COLORS } from '../config.js';
 import { boilRng, pencilLine, pencilCircle } from '../pencil.js';
+import { DANCES } from './dances.js';
 
 // Body proportions, measured in pixels up from the feet.
 const HIP = 26;
@@ -37,12 +38,31 @@ export class StickFigure {
     this.coyoteTimer = 0; // "still allowed to jump" after leaving the floor
     this.jumpBufferTimer = 0; // "jump was pressed recently" before landing
     this.jumpCutAvailable = false; // true while rising from a jump that can still be cut short
+
+    this.dancing = null; // { name, start, ms } while a celebration dance plays (see dances.js)
+  }
+
+  // Dance on the spot for `ms` milliseconds. He ignores walking and jumping until it's over.
+  dance(name, ms) {
+    this.dancing = { name, start: this.scene.time.now, ms };
+  }
+
+  get isDancing() {
+    return this.dancing !== null && this.scene.time.now < this.dancing.start + this.dancing.ms;
+  }
+
+  // His head hit something from below: stop rising and drop back down.
+  bonk() {
+    if (this.body.velocity.y < 0) this.body.setVelocityY(120);
+    this.jumpCutAvailable = false;
   }
 
   // input: { left, right, jump, jumpHeld }
   //   jump     is true only on the frame the button is first pressed
   //   jumpHeld is true for as long as it's held down
   update(input, dt) {
+    if (this.dancing && !this.isDancing) this.dancing = null;
+    if (this.dancing) input = { left: false, right: false, jump: false, jumpHeld: false };
     const body = this.body;
     const onFloor = body.blocked.down || body.touching.down;
     const ms = dt * 1000;
@@ -145,30 +165,24 @@ export class StickFigure {
     });
 
     // Pose. Angles are in radians, measured from straight down.
-    let legA, legB, armA, armB;
-    if (this.onFloor) {
-      const swing = Math.sin(this.walkPhase);
-      // A small base spread so the legs don't overlap when standing still.
-      legA = 0.18 + swing * 0.5;
-      legB = -0.18 - swing * 0.5;
-      armA = -swing * 0.6; // arms swing opposite to legs
-      armB = swing * 0.6;
-    } else {
-      // In the air: legs apart, arms up. Rising vs falling changes it a little.
-      const rising = this.body.velocity.y < 0;
-      legA = 0.5;
-      legB = rising ? -0.2 : -0.45;
-      armA = rising ? 2.6 : 2.0;
-      armB = rising ? -2.6 : -2.0;
-    }
+    const pose = this.pose(time);
+    const { legA, legB, armA, armB } = pose;
 
-    // Find the end of a limb that starts at (0, startV) and hangs at `angle`.
-    const limb = (startV, length, angle) => toScreen(Math.sin(angle) * length, startV - Math.cos(angle) * length);
+    // A dance can slide the hips, lean the head, move the whole figure, or turn
+    // him side-on (a spin squeezes him sideways through zero and out the other way).
+    const turn = pose.turn ?? 1;
+    const at = (u, v) => toScreen(((pose.slide ?? 0) + u) * turn, v + (pose.bob ?? 0));
+    const hipU = pose.hip ?? 0;
+    const neckU = hipU + (pose.lean ?? 0);
+    const shoulderU = hipU + (neckU - hipU) * ((SHOULDER - HIP) / (NECK - HIP));
 
-    const hip = toScreen(0, HIP);
-    const shoulder = toScreen(0, SHOULDER);
-    const neck = toScreen(0, NECK);
-    const head = toScreen(0, NECK + HEAD_RADIUS);
+    // Find the end of a limb that starts at (u, v) and hangs at `angle`.
+    const limb = (u, v, length, angle) => at(u + Math.sin(angle) * length, v - Math.cos(angle) * length);
+
+    const hip = at(hipU, HIP);
+    const shoulder = at(shoulderU, SHOULDER);
+    const neck = at(neckU, NECK);
+    const head = at(neckU + (pose.lean ?? 0) * 0.3, NECK + HEAD_RADIUS);
     const style = { color: COLORS.pencil, width: PLAYER.lineWidth };
 
     // Torso.
@@ -176,16 +190,34 @@ export class StickFigure {
 
     // Legs and arms.
     for (const angle of [legA, legB]) {
-      const foot = limb(HIP, LEG, angle);
+      const foot = limb(hipU, HIP, LEG, angle);
       pencilLine(g, rng, hip.x, hip.y, foot.x, foot.y, style);
     }
     for (const angle of [armA, armB]) {
-      const hand = limb(SHOULDER, ARM, angle);
+      const hand = limb(shoulderU, SHOULDER, ARM, angle);
       pencilLine(g, rng, shoulder.x, shoulder.y, hand.x, hand.y, style);
     }
 
     // Head. Average the two scales so the head stays roughly round.
     const headRadius = HEAD_RADIUS * (this.scaleX + this.scaleY) * 0.5;
     pencilCircle(g, rng, head.x, head.y, headRadius, { ...style, points: 10 });
+  }
+
+  // How his arms and legs are bent right now: a dance move, walking, or in the air.
+  pose(time) {
+    if (this.dancing && this.onFloor) {
+      const t = (time - this.dancing.start) / 1000;
+      const p = Math.min(1, (time - this.dancing.start) / this.dancing.ms);
+      return { legA: 0.18, legB: -0.18, armA: 0, armB: 0, ...DANCES[this.dancing.name](t, p) };
+    }
+    if (this.onFloor) {
+      const swing = Math.sin(this.walkPhase);
+      // A small base spread so the legs don't overlap when standing still.
+      // Arms swing opposite to legs.
+      return { legA: 0.18 + swing * 0.5, legB: -0.18 - swing * 0.5, armA: -swing * 0.6, armB: swing * 0.6 };
+    }
+    // In the air: legs apart, arms up. Rising vs falling changes it a little.
+    const rising = this.body.velocity.y < 0;
+    return { legA: 0.5, legB: rising ? -0.2 : -0.45, armA: rising ? 2.6 : 2.0, armB: rising ? -2.6 : -2.0 };
   }
 }

@@ -1,8 +1,8 @@
 // One choice in Read: a pencil card with a picture on it.
 //
-// States: normal; focused (the keyboard is on it: light shading); wrong (it
-// wiggles, then stays faded so the second try is among the others); right (a
-// pencil circle goes round it). Cards live in screen space.
+// States: normal; wrong (it wiggles, then stays faded so the second try is among
+// the others); right (a pencil circle goes round it). Cards live in screen space.
+// You pick one by jumping up into it (ReadScene checks that) or by tapping it.
 
 import { COLORS } from '../config.js';
 import { boilRng, pencilLine, pencilEllipse } from '../pencil.js';
@@ -21,7 +21,6 @@ export class PictureCard {
     this.rect = { x: 0, y: 0, width: 0, height: 0 };
     this.state = 'normal'; // 'normal', 'wrong', or 'right'
     this.wiggleAt = -Infinity;
-    this.focused = false;
   }
 
   place(x, y, width, height) {
@@ -61,11 +60,7 @@ export class PictureCard {
 
     g.fillStyle(COLORS.paper, 1);
     g.fillRect(left, y, w, h);
-    if (this.focused && this.pickable) {
-      g.fillStyle(COLORS.pencil, 0.1);
-      g.fillRect(left, y, w, h);
-    }
-    const frame = { ...FRAME, alpha: 0.9 * alpha, width: this.focused && this.pickable ? 4.5 : 3 };
+    const frame = { ...FRAME, alpha: 0.9 * alpha };
     pencilLine(g, rng, left - 3, y, left + w + 3, y, frame);
     pencilLine(g, rng, left - 3, y + h, left + w + 3, y + h, frame);
     pencilLine(g, rng, left, y - 3, left, y + h + 3, frame);

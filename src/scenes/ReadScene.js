@@ -1,25 +1,27 @@
 // Read: the reading game (docs/reading-framework.md, phases 1 and 2).
 //
 // A word is written at the top of the page; below it, pencil pictures on cards.
-// Tap the picture that matches the word. Right: the card is circled, the word is
-// spoken, and the little figure hops. Wrong: the card wiggles and fades, and you
-// try again (no buzzer, no lost life). A pencil speaker next to the word says it
+// Walk the stick figure under the picture that matches the word and jump up into
+// it (or just tap it). Right: the card is circled, the word is spoken, and he does
+// a little dance. Wrong: the card wiggles and fades, and you try again (no buzzer,
+// no lost life). A pencil speaker next to the word says it
 // out loud; it fades away as the word gets familiar.
 //
 // All the deciding (which word, which pictures, how hard) is the ReadingEngine's
 // job (src/reading/engine.js); this scene draws, listens, and reports answers.
 //
-// Controls: tap a card or the speaker. Keyboard: Left/Right choose a card,
-// Space/Enter (or Up/W) picks it, 1-5 pick directly, H hears the word, Esc goes
-// back, M mutes. A round is READ.roundLength words, then a big star and ↻ / ◀.
+// Controls: walk and jump (keyboard or the touch buttons), or tap a card or the
+// speaker. Keyboard extras: 1-5 pick directly, H hears the word, Esc goes back,
+// M mutes. A round is READ.roundLength words, then a big star and ↻ / ◀.
 
 import Phaser from 'phaser';
-import { COLORS, PAPER, PAGE_MAX_WIDTH } from '../config.js';
+import { COLORS, PAPER, PAGE_MAX_WIDTH, PLAYER, READ } from '../config.js';
 import { drawPaper, lineY } from '../objects/Paper.js';
 import { Platforms } from '../objects/Platforms.js';
 import { StickFigure } from '../objects/StickFigure.js';
 import { PencilWord } from '../objects/PencilWord.js';
 import { PictureCard } from '../objects/PictureCard.js';
+import { pickDance } from '../objects/dances.js';
 import { drawIcon } from '../objects/ClimbCards.js';
 import { drawStar } from '../objects/climbArt.js';
 import { PlayerInput } from '../input.js';
@@ -34,13 +36,14 @@ export const MODE_ID = 'read';
 const FLOOR_LINE = 12;
 const WORD_SIZE = 84;
 const WORD_TOP = 34;
-const CARDS_TOP = 160; // screen y where the cards start
+const CARDS_TOP = 140; // screen y where the cards may start (below the word)
 const CONTENT_LEFT = PAPER.marginX + 30; // keep clear of the margin and the back button
+const CONTENT_RIGHT = 40;
 const CARD_GAP = 22;
-const CONTENT_RIGHT = 100; // room on the right for the little figure
-const NEXT_MS = 1200; // after a right answer, the next word comes after this long
+// Like the comic page's panels, the cards' bottom edges sit just above the
+// figure's head, so even a quick tap-jump bumps them.
+const CARD_HEADROOM = 18;
 const BACK = { x: 52, y: 40, radius: 26 };
-const NO_INPUT = { left: false, right: false, jump: false, jumpHeld: false };
 
 export class ReadScene extends Phaser.Scene {
   constructor() {
@@ -53,18 +56,17 @@ export class ReadScene extends Phaser.Scene {
     drawPaper(this);
     const floorY = lineY(FLOOR_LINE);
     this.platforms = new Platforms(this, [{ line: FLOOR_LINE, from: PAPER.marginX, to: PAGE_MAX_WIDTH }]);
-    this.player = new StickFigure(this, this.scale.width - CONTENT_RIGHT / 2, floorY - 30);
+    this.player = new StickFigure(this, this.centerX(), floorY - 30);
+    this.player.graphics.setDepth(11); // in front of the cards
     this.physics.add.collider(this.player.zone, this.platforms.group);
-    this.hopQueued = 0;
+    this.danceQueued = null; // { ms, then } until he lands and can dance
+    this.lastDance = null;
 
-    this.controls = new PlayerInput(this);
-    this.controls.touch.setLayout('none'); // no walking here: you tap the cards
-    this.held = { left: false, right: false };
+    this.controls = new PlayerInput(this); // walk + jump; the touch buttons show on phones
 
     this.ui = this.add.graphics().setScrollFactor(0).setDepth(12);
     this.word = new PencilWord(this, 'CAT', 0, WORD_TOP, WORD_SIZE, { align: 'center', fixed: true, written: false, depth: 12, lineWidth: 6 });
     this.cards = [];
-    this.focus = -1; // which card the keyboard is on (-1: none yet)
     this.state = 'puzzle'; // 'puzzle', 'next' (waiting after a right answer), or 'done'
     this.dots = []; // one per answered word this round
 
@@ -99,8 +101,12 @@ export class ReadScene extends Phaser.Scene {
     this.cards = puzzle.choices.map((entry, i) => new PictureCard(this, entry, i));
     this.firstPick = null;
     this.hintUsed = false;
-    this.focus = -1;
     this.state = 'puzzle';
+    // Each word starts with him in the middle, so where he stood last time
+    // doesn't hint at (or give away) where the answer is.
+    this.player.body.reset(this.centerX(), lineY(FLOOR_LINE) - PLAYER.bodyHeight / 2);
+    this.player.dancing = null;
+    this.danceQueued = null;
     this.word.setText(puzzle.word);
     this.word.write(450);
     this.shownAt = this.time.now + 450; // timing starts once the word is written
@@ -129,8 +135,9 @@ export class ReadScene extends Phaser.Scene {
       sfx.ding(1);
       if (canSpeak()) this.time.delayedCall(250, () => say(this.puzzle.word));
     }
-    this.hopQueued = this.firstPick === index ? 1 : 2; // getting it after a miss is worth an extra hop
-    this.time.delayedCall(NEXT_MS, () => this.showPuzzle());
+    // A dance, and then the next word. Getting it after a miss is worth a longer dance.
+    const ms = this.firstPick === index ? READ.danceMs : READ.danceLongMs;
+    this.celebrate(ms, () => this.showPuzzle());
   }
 
   hear() {
@@ -142,9 +149,24 @@ export class ReadScene extends Phaser.Scene {
   roundOver() {
     this.state = 'done';
     this.word.fadeOut();
-    this.hopQueued = 3;
+    this.celebrate(READ.danceLongMs);
     if (!isMuted()) sfx.unlock();
     this.doneAt = this.time.now;
+  }
+
+  // Dance once he's on the floor (he may still be in the air after bumping the
+  // card), then carry on. A new random dance each time, never the same twice running.
+  celebrate(ms, then = null) {
+    this.danceQueued = { ms, then };
+  }
+
+  startQueuedDance() {
+    if (!this.danceQueued || !this.player.onFloor) return;
+    const { ms, then } = this.danceQueued;
+    this.danceQueued = null;
+    this.lastDance = pickDance(this.lastDance);
+    this.player.dance(this.lastDance, ms);
+    if (then) this.time.delayedCall(ms + READ.afterDanceMs, then);
   }
 
   again() {
@@ -171,32 +193,20 @@ export class ReadScene extends Phaser.Scene {
     }
     if (k === 'h' || k === 'H') return this.hear();
     if (k >= '1' && k <= '9') return this.pick(Number(k) - 1);
-    if (k === 'Enter') this.pickFocused();
   }
 
-  // Left/Right move between the cards still in play; jump (Space, Up, W) picks.
-  updateKeys(input) {
-    const pressed = (name) => input[name] && !this.held[name];
-    if (this.state === 'puzzle') {
-      if (pressed('left')) this.moveFocus(-1);
-      if (pressed('right')) this.moveFocus(1);
-      if (input.jump) this.pickFocused();
-    } else if (this.state === 'done' && input.jump) {
-      this.again();
-    }
-    this.held = { left: input.left, right: input.right };
-  }
-
-  moveFocus(dir) {
-    const open = this.cards.filter((c) => c.pickable).map((c) => c.index);
-    if (open.length === 0) return;
-    const at = open.indexOf(this.focus);
-    this.focus = at === -1 ? open[dir > 0 ? 0 : open.length - 1] : open[(at + dir + open.length) % open.length];
-  }
-
-  pickFocused() {
-    if (this.focus === -1) this.moveFocus(1); // first press just shows where you are
-    else this.pick(this.focus);
+  // Has his head just bumped the bottom of a card from below? Cards are drawn in
+  // screen space and he lives in the world, so the card's edge is moved into the
+  // world by the camera's scroll (non-zero on screens taller than 16:9).
+  bumpedCard() {
+    const body = this.player.body;
+    if (body.velocity.y >= 0) return null;
+    const scrollY = this.cameras.main.scrollY;
+    return this.cards.find((card) => {
+      const { x, y, width, height } = card.rect;
+      const bottom = y + height + scrollY;
+      return body.center.x > x + 10 && body.center.x < x + width - 10 && body.top < bottom - 4 && body.top > bottom - 40;
+    });
   }
 
   tap(x, y) {
@@ -216,20 +226,19 @@ export class ReadScene extends Phaser.Scene {
   // ---- Layout (recomputed every frame, so it follows screen changes) ----
 
   layoutCards() {
-    const { width, height } = this.scale;
     const n = this.cards.length;
     if (n === 0) return;
-    const right = width - CONTENT_RIGHT;
-    const available = right - CONTENT_LEFT;
-    const bottom = height - 80; // above the floor and the dots
+    const available = this.scale.width - CONTENT_RIGHT - CONTENT_LEFT;
+    const bottom = this.floorScreenY() - PLAYER.bodyHeight - CARD_HEADROOM;
     const size = Math.min(220, bottom - CARDS_TOP, (available - CARD_GAP * (n - 1)) / n);
     const total = n * size + (n - 1) * CARD_GAP;
     const left = CONTENT_LEFT + (available - total) / 2;
-    const top = CARDS_TOP + (bottom - CARDS_TOP - size) / 2;
-    this.cards.forEach((card, i) => {
-      card.place(left + i * (size + CARD_GAP), top, size, size);
-      card.focused = i === this.focus;
-    });
+    this.cards.forEach((card, i) => card.place(left + i * (size + CARD_GAP), bottom - size, size, size));
+  }
+
+  // The floor line's y on the screen (the camera scrolls up on tall screens).
+  floorScreenY() {
+    return lineY(FLOOR_LINE) - this.cameras.main.scrollY;
   }
 
   centerX() {
@@ -259,12 +268,18 @@ export class ReadScene extends Phaser.Scene {
 
   update(time, delta) {
     const dt = Math.min(delta / 1000, 0.05);
-    this.updateKeys(this.controls.read());
+    const input = this.controls.read();
+    if (this.state === 'done' && input.jump && !this.player.isDancing) return this.again();
+    this.player.update(input, dt);
+    this.startQueuedDance();
 
-    // The little figure hops when you get one right (more hops for a hard-won one).
-    const hop = this.hopQueued > 0 && this.player.onFloor;
-    if (hop) this.hopQueued--;
-    this.player.update(hop ? { ...NO_INPUT, jump: true, jumpHeld: true } : NO_INPUT, dt);
+    // Jumping up into a card picks it. Any card stops his head (it's solid, even a faded one).
+    const bumped = this.bumpedCard();
+    if (bumped) {
+      this.player.bonk();
+      if (!isMuted()) sfx.bump();
+      this.pick(bumped.index);
+    }
 
     this.word.setPosition(this.centerX(), WORD_TOP);
     this.layoutCards();
@@ -272,6 +287,7 @@ export class ReadScene extends Phaser.Scene {
     for (const card of this.cards) card.draw(time);
     this.word.draw(time);
     this.player.draw(time);
+    this.controls.draw(time);
     this.drawUi(time);
   }
 
@@ -288,10 +304,12 @@ export class ReadScene extends Phaser.Scene {
     const speaker = this.speaker();
     if (speaker) drawSpeaker(g, rng, speaker);
 
-    // One dot per word answered this round, along the bottom.
-    const dotsY = this.scale.height - 56;
+    // One dot per word answered this round, centered under the floor line
+    // (between the touch buttons, out of his way).
+    const dotsY = this.floorScreenY() + 18;
+    const dotsLeft = this.centerX() - ((this.engine.roundLength - 1) * 24) / 2;
     for (let i = 0; i < this.engine.roundLength; i++) {
-      const x = CONTENT_LEFT + 10 + i * 24;
+      const x = dotsLeft + i * 24;
       pencilCircle(g, rng, x, dotsY, 7, { ...style, width: 2, alpha: 0.6, points: 8 });
       if (i < this.dots.length) {
         g.fillStyle(COLORS.pencil, 0.55);

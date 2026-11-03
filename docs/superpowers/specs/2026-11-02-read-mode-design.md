@@ -16,17 +16,21 @@ and another try, never a buzzer.
 ## What the child sees
 
 - A word written in big pencil letters at the top (CAT), and below it a row of pencil
-  pictures on cards (3 to start). Tap the picture that matches.
-- **Right:** the card gets a pencil circle, a soft ding, the word is spoken, and the little
-  stick figure at the bottom hops. On to the next word.
+  pictures on cards (3 to start). Walk the stick figure under the picture that matches and
+  jump up into it, like jumping into a comic page panel. Tapping a card picks it too.
+  (Changed 2026-11-03: it used to be tap or keyboard-highlight only.)
+- **Right:** the card gets a pencil circle, a soft ding, the word is spoken, and the stick
+  figure does a little celebration dance, a random one each time (never the same twice
+  running): arms-up wiggle, spin, kick line, disco point, shuffle, floss, Carlton, funky
+  chicken. A hard-won answer gets a longer dance. Then the next word, with him back in the middle.
 - **Wrong:** that card wiggles and fades back. Try again. No sound, no lost life.
 - **Tap-to-hear:** a pencil speaker beside the word says it out loud. It's big for new words,
   small and faint once the word is getting familiar, and gone once it's known.
 - A row of little dots along the bottom fills in as the round goes (10 words). The round
   always ends on a right answer, then a big pencil star and two buttons: ↻ again, ◀ back.
 - No words besides the word being read. Back: ◀ in the corner, or Esc.
-- Keyboard: Left/Right choose a card, Space/Enter picks it, 1–5 pick directly, H hears the word.
-  Touch: tap a card, tap the speaker.
+- Keyboard: Left/Right walk, Up/Space/W jump, 1–5 pick directly, H hears the word.
+  Touch: the usual ◀ ▶ ▲ buttons, or tap a card; tap the speaker.
 
 Letters are uppercase, matching Margins' pencil font and the framework's examples (COW).
 (Lowercase would need a new set of letters in `PencilWord`; noted as an open question.)

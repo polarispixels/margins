@@ -35,8 +35,9 @@ and what's deliberately out of scope for now.
   lose), paper airplanes fly you up, and height milestones raise both rewards and danger.
   Initials and a top-five high score table are saved on the device.
 - The fourth strip, "Read", is a **mode** (`ReadScene`): the reading game from
-  `docs/reading-framework.md` (phases 1 and 2). Read a word, tap the matching pencil
-  picture; an adaptive engine (`src/reading/`) picks words and choices to keep the child
+  `docs/reading-framework.md` (phases 1 and 2). Read a word, walk the stick figure under
+  the matching pencil picture and jump up into it (or tap it); he does a random
+  celebration dance when it's right. An adaptive engine (`src/reading/`) picks words and choices to keep the child
   near 85% success. The comic page is the mode picker.
 - This is a learning / for-fun proof of concept. Keep it small.
 
@@ -103,6 +104,7 @@ margins/
         ├── puzzleArt.js    # Drawings: colored-pencil hatching, switches, clue note, fence
         ├── CoffeeRing.js   # A coffee ring stain
         ├── PictureCard.js  # Read: one picture card (wiggle, fade, circle, tap test)
+        ├── dances.js       # The stick figure's celebration dances (pose functions)
         ├── PencilPicture.js# Draws a picture from data/pictures.js in boiling pencil
         └── TouchControls.js# On-screen left / right / jump buttons for phones
 ```
@@ -146,7 +148,11 @@ Design notes: `docs/superpowers/specs/2026-11-02-launch-design.md` and
 
 `ReadScene` draws and listens; `ReadingEngine` (`src/reading/engine.js`) decides. The scene
 calls `engine.startRound()`, then `nextPuzzle()` (null when the round is over) and
-`answer(puzzle, { firstPick, ms, hintUsed })` on the first pick only. The engine is plain
+`answer(puzzle, { firstPick, ms, hintUsed })` on the first pick only. You pick by walking
+under a card and jumping up into it (cards sit just above his head, like the comic page's
+panels; `bumpedCard()` converts the screen-space cards into world space), or by tapping it.
+After a right answer `StickFigure.dance()` plays a random dance from `src/objects/dances.js`
+(`READ.danceMs`), then the next word comes. The engine is plain
 JS with no Phaser, so it can be run and simulated in Node. All thresholds are in `READ`
 in `src/config.js`; content is data in `src/data/` (words tagged by level, skill, theme;
 pictures as pencil shapes), so new words and biomes need no code. Wrong answers wiggle
