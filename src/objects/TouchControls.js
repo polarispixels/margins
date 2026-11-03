@@ -1,5 +1,8 @@
-// On-screen buttons for phones: left and right in the bottom-left corner,
-// jump in the bottom-right.
+// On-screen buttons for phones. Layouts (switch with setLayout()):
+//   'platformer' (default): left and right in the bottom-left corner, jump in
+//                           the bottom-right.
+//   'flight' (Launch's rocket): up above down, in the bottom-right.
+//   'none': no buttons (e.g. during a cutscene).
 //
 // Instead of listening for "button pressed" events, every frame we look at
 // all fingers currently on the screen and check which buttons they're over.
@@ -12,7 +15,8 @@ import { boilRng, pencilCircle, pencilLine } from '../pencil.js';
 export class TouchControls {
   constructor(scene) {
     this.scene = scene;
-    this.state = { left: false, right: false, jump: false };
+    this.mode = 'platformer';
+    this.state = {};
 
     // Only show the buttons on touch devices.
     this.enabled = scene.sys.game.device.input.touch;
@@ -23,10 +27,26 @@ export class TouchControls {
 
   // Place the buttons relative to the screen's corners, since the screen
   // size depends on the device.
+  setLayout(mode) {
+    this.mode = mode;
+    this.layout();
+  }
+
   layout() {
     const { width, height } = this.scene.scale;
     const r = TOUCH.buttonRadius;
     const y = height - r - 16;
+    if (this.mode === 'none') {
+      this.buttons = {};
+      return;
+    }
+    if (this.mode === 'flight') {
+      this.buttons = {
+        up: { x: width - r - 28, y: y - r * 2 - 20 },
+        down: { x: width - r - 28, y },
+      };
+      return;
+    }
     // In landscape, the arrows start right of the margin; in portrait (Climb)
     // the screen is narrow, so they start near the left edge.
     const left = width > height ? 160 : 20;
@@ -40,7 +60,7 @@ export class TouchControls {
 
   // Work out which buttons are held right now.
   update() {
-    this.state = { left: false, right: false, jump: false };
+    this.state = { left: false, right: false, jump: false, up: false, down: false };
     if (!this.enabled) return;
     this.layout(); // cheap, and keeps up with screen size changes
 
@@ -72,18 +92,19 @@ export class TouchControls {
       }
       pencilCircle(g, rng, b.x, b.y, r, { ...style, points: 18 });
 
-      // Arrow glyphs: a chevron pointing left, right, or up.
+      // Arrow glyphs: a chevron pointing left, right, up, or down.
       const s = r * 0.35;
-      if (name === 'left') {
-        pencilLine(g, rng, b.x + s * 0.5, b.y - s, b.x - s * 0.5, b.y, style);
-        pencilLine(g, rng, b.x - s * 0.5, b.y, b.x + s * 0.5, b.y + s, style);
-      } else if (name === 'right') {
-        pencilLine(g, rng, b.x - s * 0.5, b.y - s, b.x + s * 0.5, b.y, style);
-        pencilLine(g, rng, b.x + s * 0.5, b.y, b.x - s * 0.5, b.y + s, style);
-      } else {
-        pencilLine(g, rng, b.x - s, b.y + s * 0.5, b.x, b.y - s * 0.5, style);
-        pencilLine(g, rng, b.x, b.y - s * 0.5, b.x + s, b.y + s * 0.5, style);
-      }
+      const chevron = (dx, dy) => {
+        // Two strokes meeting at the point the arrow aims toward (dx, dy).
+        const tipX = b.x + dx * s * 0.5;
+        const tipY = b.y + dy * s * 0.5;
+        pencilLine(g, rng, tipX - dx * s - dy * s, tipY - dy * s - dx * s, tipX, tipY, style);
+        pencilLine(g, rng, tipX, tipY, tipX - dx * s + dy * s, tipY - dy * s + dx * s, style);
+      };
+      if (name === 'left') chevron(-1, 0);
+      else if (name === 'right') chevron(1, 0);
+      else if (name === 'down') chevron(0, 1);
+      else chevron(0, -1); // jump and up
     }
   }
 }

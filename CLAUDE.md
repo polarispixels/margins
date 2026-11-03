@@ -22,7 +22,11 @@ and what's deliberately out of scope for now.
 - The first strip, "Getting Started", has one panel (`GettingStartedScene`): the line
   draws itself as you walk (WALK), the word JUMP is a solid obstacle, and a sleeping dog
   waits at the end. Finished panels show their story art (saved in `progress.js`).
-- The second strip, "Climb", is a separate **mode** (`ClimbScene`): an endless vertical
+- The second strip, "Launch" (`LaunchScene`), is a side-scrolling story level on one long
+  sheet: run through a forest, dodge goo from a UFO, fly a rocket (Up/Down to steer), and
+  dodge a fireball that bursts into fireworks over a city. Hits only stun; no game over.
+  It has music and sound effects, made in code (`audio.js`), with a remembered mute button.
+- The third strip, "Climb", is a separate **mode** (`ClimbScene`): an endless vertical
   platformer played in **portrait**, with the same walk and jump controls as the story
   levels. Springs and paperclips launch you, ink blots crawl on platforms (stomp them or
   lose), paper airplanes fly you up, and height milestones raise both rewards and danger.
@@ -53,13 +57,15 @@ margins/
     ├── main.js             # Creates the Phaser.Game (size, scaling, physics, scene list)
     ├── config.js           # All tunable numbers and colors live here
     ├── pencil.js           # Seeded random + wobbly "pencil" drawing helpers (the boil)
-    ├── input.js            # PlayerInput: keyboard + touch -> { left, right, jump, jumpHeld }
+    ├── input.js            # PlayerInput: keyboard + touch -> { left, right, jump, jumpHeld, up, down }
     ├── screen.js           # useLayout (landscape/portrait), watchScreen, paper-colored fades
     ├── progress.js         # Finished panels, initials, top-five scores (localStorage, best effort)
+    ├── audio.js            # Web Audio: unlock on first gesture, mute (saved), music, sound effects
     ├── milestones.js       # Climb difficulty by height: difficultyAt(), milestoneAt()
     ├── scenes/
     │   ├── ComicPageScene.js       # The comic page (start scene): jump into a panel
     │   ├── GettingStartedScene.js  # The first tutorial panel
+    │   ├── LaunchScene.js          # Launch: forest, UFO, rocket, fireball, city (phases)
     │   └── ClimbScene.js           # Climb mode (portrait): states, camera, blots, flight, milestones
     └── objects/
         ├── Paper.js        # Static background: paper, ruled lines, margin, holes; lineY()
@@ -73,6 +79,8 @@ margins/
         ├── climbArt.js     # Climb drawings: springs, paperclips, stars, blots, splats, planes
         ├── ClimbCards.js   # Climb's initials, start, and score cards (pencil buttons)
         ├── ScrollingPaper.js # Climb's endless notebook page
+        ├── LongPaper.js    # Launch's long sheet of paper
+        ├── launchArt.js    # Launch drawings: rocket, UFO, goo, trees, city, fireball, fireworks
         ├── CoffeeRing.js   # A coffee ring stain
         └── TouchControls.js# On-screen left / right / jump buttons for phones
 ```
@@ -89,9 +97,18 @@ reads as a hand-drawn flipbook.
 `StickFigure.update()` adds coyote time, jump buffering, and variable jump height
 (tap = small hop, hold = full jump). Tunables are `coyoteTimeMs`, `jumpBufferMs`,
 and `jumpCutMultiplier` under `PLAYER` in `src/config.js`. Input arrives as
-`{ left, right, jump, jumpHeld }` from `PlayerInput.read()` (`src/input.js`), built from both
+`{ left, right, jump, jumpHeld, up, down }` from `PlayerInput.read()` (`src/input.js`), built from both
 keyboard and touch, so any new input source must fill in both `jump` (pressed this
 frame) and `jumpHeld`. Design notes: `docs/superpowers/specs/2026-11-02-jump-feel-design.md`.
+
+## Launch
+
+`LaunchScene` runs phases `run` → `launching` → `flying` → `landing` → `done`. Section
+positions and timings are under `LAUNCH` in `src/config.js`. During flight `TouchControls`
+switches to its `flight` layout (▲ ▼) and `PlayerInput` reports `up`/`down`. Audio:
+`src/audio.js` creates one `AudioContext` on the first tap or keypress (Phaser's audio is
+off via `audio.noAudio`); mute is saved in `localStorage`. Only Launch plays sound so far.
+Design notes: `docs/superpowers/specs/2026-11-02-launch-design.md`.
 
 ## Climb mode
 

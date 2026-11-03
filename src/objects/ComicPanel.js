@@ -3,6 +3,8 @@
 // Its art depends on which panel it is:
 //   'getting-started': before the level is finished, a faint sketch (a little guy
 //                      on a line); after, what happened: the guy, his dog, a heart.
+//   'launch':          a rocket on its pad by some trees; after, the rocket flying
+//                      over the city with a firework.
 //   'climb':           a little guy bouncing up short lines past a spring and a
 //                      star, with the best score written in the corner.
 
@@ -10,6 +12,7 @@ import { COLORS } from '../config.js';
 import { boilRng, pencilLine, pencilCircle, pencilPolyline } from '../pencil.js';
 import { drawDog, drawHeart } from './Dog.js';
 import { drawStar } from './climbArt.js';
+import { drawRocket, drawLaunchPad, drawTree, drawFirework } from './launchArt.js';
 import { PencilWord } from './PencilWord.js';
 
 export class ComicPanel {
@@ -74,6 +77,8 @@ export class ComicPanel {
     const groundY = y + h * 0.62;
     if (this.art === 'climb') {
       this.drawClimbArt(art, rng, time);
+    } else if (this.art === 'launch') {
+      this.drawLaunchArt(art, rng, time);
     } else if (this.completed) {
       // The story so far: the little guy and his dog, and a heart between them.
       pencilLine(art, rng, x + 20, groundY, x + w - 20, groundY, { color: COLORS.pencil, width: 2.5 });
@@ -86,6 +91,29 @@ export class ComicPanel {
       pencilLine(art, rng, x + 20, groundY, this.centerX, groundY, faint);
       drawStandingFigure(art, rng, x + 60, groundY, faint);
     }
+  }
+
+  // Before: the rocket waiting on its pad. After: flying over the city, with a firework.
+  drawLaunchArt(g, rng, time) {
+    const { x, y } = this;
+    const groundY = y + this.height * 0.62;
+    pencilLine(g, rng, x + 14, groundY, x + this.width - 14, groundY, { color: COLORS.pencil, width: 2.5 });
+    if (!this.completed) {
+      drawTree(g, rng, x + 40, groundY, 90, 0.8);
+      drawLaunchPad(g, rng, this.centerX + 20, groundY);
+      drawRocket(g, rng, this.centerX + 20, groundY - 8 - 61 * 0.7, 0, { scale: 0.7, time });
+      return;
+    }
+    // A little skyline, the rocket zooming over it, and a firework going off.
+    const heights = [40, 70, 50, 90, 60, 45];
+    heights.forEach((h, i) => {
+      const bx = x + 20 + i * 31;
+      pencilPolyline(g, rng, [
+        { x: bx, y: groundY }, { x: bx, y: groundY - h }, { x: bx + 26, y: groundY - h }, { x: bx + 26, y: groundY },
+      ], { color: COLORS.pencil, width: 2 });
+    });
+    drawRocket(g, rng, this.centerX - 10, y + 70, Math.PI / 2 - 0.15, { scale: 0.55, flame: 0.8, face: true, time });
+    drawFirework(g, rng, x + this.width - 50, y + 50, 0.35 + Math.sin(time / 500) * 0.15);
   }
 
   // Short lines climbing up the panel, a spring, a star, and a little guy mid-bounce.

@@ -17,6 +17,7 @@ export const COLORS = {
   holeShadow: 0xd8d2c2,
   pencil: 0x3a3a3a,
   ink: 0x1f2a44, // ink blots: the first thing in Climb that isn't pencil, so it means danger
+  fire: 0xf0a040, // a warm fill under pencil lines for fire (rocket flame, fireball, fireworks)
   coffee: 0x8a5a2b,
 };
 
@@ -112,4 +113,39 @@ export const CLIMB = {
       starValue: [0, 500], blotValue: [0, 1000],
     },
   },
+};
+
+// Launch: the side-scrolling rocket level. Positions are world x in pixels.
+export const LAUNCH = {
+  length: 8400, // the whole level; the city is at the end
+  forestEnd: 2600,
+  ufoStart: 1300, // the UFO arrives when the figure gets here...
+  ufoEnd: 3300, // ...and zooms away here
+  rocketX: 3600, // the rocket on its launch pad
+  finaleX: 5200, // the fireball arrives when the rocket gets here
+  cityX: 7600, // the skyline starts here
+  landX: 7900, // where the rocket lands
+
+  parallaxFar: 0.3, // background trees and clouds scroll at this fraction of the camera...
+  parallaxNear: 0.6, // ...and the nearer row at this one
+
+  ufoHeight: 150, // world y the UFO hovers at
+  ufoDropEvery: 1.7, // seconds between goo drops
+  ufoWarning: 0.5, // seconds of warning rays before a drop
+  gooGravity: 700,
+  stunSeconds: 1, // how long a hit stuns the figure or the rocket (no game over)
+
+  countdownStep: 0.6, // seconds per "3", "2", "1", "GO!"
+  flightSpeed: 300, // the rocket flies right on its own at this speed
+  flightSteer: 280, // up/down speed while flying
+  flightTop: 70, // world y limits for the rocket
+  flightBottom: 470,
+
+  fireballLunges: 3, // how many times the fireball lunges before the city
+  fireballTrack: 1.4, // seconds following the rocket's height between lunges
+  fireballAim: 0.8, // seconds showing the dashed line before a lunge
+  fireballLungeSpeed: 950, // px per second faster than the rocket
+  fireballRadius: 22,
+
+  musicTempo: 120, // beats per minute (the finale plays faster)
 };

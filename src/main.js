@@ -3,6 +3,7 @@ import { WIDTH, HEIGHT, COLORS, PLAYER } from './config.js';
 import { ComicPageScene } from './scenes/ComicPageScene.js';
 import { GettingStartedScene } from './scenes/GettingStartedScene.js';
 import { ClimbScene } from './scenes/ClimbScene.js';
+import { LaunchScene } from './scenes/LaunchScene.js';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO, // WebGL if available, otherwise Canvas
@@ -27,8 +28,11 @@ const game = new Phaser.Game({
   input: {
     activePointers: 3, // allow e.g. holding "right" and tapping "jump" at once
   },
+  // Margins makes its own sounds with the Web Audio API (see audio.js), so
+  // Phaser's audio is turned off to keep a single audio context.
+  audio: { noAudio: true },
   // The first scene in the list starts the game.
-  scene: [ComicPageScene, GettingStartedScene, ClimbScene],
+  scene: [ComicPageScene, GettingStartedScene, LaunchScene, ClimbScene],
 });
 
 // In development, expose the game so you can poke at it from the browser console,

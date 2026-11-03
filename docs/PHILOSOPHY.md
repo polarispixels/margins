@@ -46,10 +46,11 @@ Before anything ships, ask:
 
 Approved: `WALK` `JUMP` `HURRY` `LOOK OUT!` `DANGER`
 
-In use, not yet confirmed: `GO!` `UP!` (Climb milestone messages)
+In use, not yet confirmed: `GO!` `UP!` (Climb milestone messages), `3 2 1 GO!`
+and `THE END` (Launch)
 
 Proposed, not yet confirmed: `STOP` `DOWN` `YES` `NO` `BIG` `LITTLE`
-`IN` `OUT` `HELP` `THE END`
+`IN` `OUT` `HELP`
 
 Add new words only if an early reader can read them; when in doubt, check a
 kindergarten or first-grade sight-word list.

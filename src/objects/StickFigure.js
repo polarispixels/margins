@@ -43,6 +43,7 @@ export class StickFigure {
     const body = this.body;
     const onFloor = body.blocked.down || body.touching.down;
     const ms = dt * 1000;
+    this.jumped = false; // true only on the frame he jumps (e.g. for a sound)
 
     // Walking.
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
@@ -72,6 +73,7 @@ export class StickFigure {
       this.jumpBufferTimer = 0;
       this.coyoteTimer = 0;
       this.jumpCutAvailable = true;
+      this.jumped = true;
     }
 
     // Drain the timers *after* the check, so each window lasts its full length
