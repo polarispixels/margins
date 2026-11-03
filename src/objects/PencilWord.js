@@ -5,8 +5,8 @@
 // the pencil helpers makes words wobble and boil like everything else, and lets a
 // word be "written on" one stroke at a time (see write()).
 //
-// Only the letters we use so far are defined. To add one, sketch it on graph
-// paper in a 1-tall box and copy the points.
+// It has A-Z, 0-9, and "!". To add a character, sketch it on graph paper in a
+// 1-tall box and copy the points.
 
 import { COLORS } from '../config.js';
 import { boilRng, pencilPolyline } from '../pencil.js';
@@ -22,24 +22,33 @@ const FONT = {
   7: { w: 0.6, strokes: [[[0, 0], [0.6, 0], [0.2, 1]]] },
   8: { w: 0.6, strokes: [[[0.3, 0.48], [0.08, 0.38], [0.05, 0.15], [0.3, 0], [0.55, 0.15], [0.52, 0.38], [0.3, 0.48], [0.05, 0.62], [0.02, 0.85], [0.3, 1], [0.58, 0.85], [0.55, 0.62], [0.3, 0.48]]] },
   9: { w: 0.6, strokes: [[[0.58, 0.4], [0.5, 0.5], [0.28, 0.55], [0.06, 0.45], [0, 0.25], [0.1, 0.05], [0.32, 0], [0.55, 0.1], [0.6, 0.35], [0.55, 0.75], [0.35, 1], [0.08, 0.95]]] },
+  '!': { w: 0.2, strokes: [[[0.1, 0], [0.1, 0.65]], [[0.1, 0.9], [0.1, 1]]] },
   A: { w: 0.7, strokes: [[[0, 1], [0.35, 0], [0.7, 1]], [[0.15, 0.6], [0.55, 0.6]]] },
   B: { w: 0.6, strokes: [[[0, 0], [0, 1], [0.4, 1], [0.6, 0.88], [0.6, 0.62], [0.42, 0.5], [0, 0.5]], [[0.42, 0.5], [0.55, 0.38], [0.55, 0.12], [0.38, 0], [0, 0]]] },
   C: { w: 0.65, strokes: [[[0.65, 0.15], [0.5, 0], [0.2, 0], [0, 0.25], [0, 0.75], [0.2, 1], [0.5, 1], [0.65, 0.85]]] },
   D: { w: 0.7, strokes: [[[0, 0], [0, 1], [0.35, 1], [0.6, 0.8], [0.7, 0.5], [0.6, 0.2], [0.35, 0], [0, 0]]] },
   E: { w: 0.6, strokes: [[[0.6, 0], [0, 0], [0, 1], [0.6, 1]], [[0, 0.5], [0.45, 0.5]]] },
+  F: { w: 0.6, strokes: [[[0.6, 0], [0, 0], [0, 1]], [[0, 0.5], [0.45, 0.5]]] },
   G: { w: 0.7, strokes: [[[0.65, 0.15], [0.5, 0], [0.2, 0], [0, 0.25], [0, 0.75], [0.2, 1], [0.5, 1], [0.7, 0.8], [0.7, 0.55], [0.4, 0.55]]] },
+  H: { w: 0.65, strokes: [[[0, 0], [0, 1]], [[0.65, 0], [0.65, 1]], [[0, 0.5], [0.65, 0.5]]] },
   I: { w: 0.2, strokes: [[[0.1, 0], [0.1, 1]]] },
   J: { w: 0.6, strokes: [[[0.6, 0], [0.6, 0.75], [0.45, 1], [0.2, 1], [0, 0.8]]] },
   K: { w: 0.65, strokes: [[[0, 0], [0, 1]], [[0.6, 0], [0, 0.55]], [[0.2, 0.4], [0.65, 1]]] },
   L: { w: 0.55, strokes: [[[0, 0], [0, 1], [0.55, 1]]] },
   M: { w: 0.8, strokes: [[[0, 1], [0, 0], [0.4, 0.6], [0.8, 0], [0.8, 1]]] },
   N: { w: 0.65, strokes: [[[0, 1], [0, 0], [0.65, 1], [0.65, 0]]] },
+  O: { w: 0.7, strokes: [[[0.35, 0], [0.6, 0.1], [0.7, 0.5], [0.6, 0.9], [0.35, 1], [0.1, 0.9], [0, 0.5], [0.1, 0.1], [0.35, 0]]] },
   P: { w: 0.6, strokes: [[[0, 1], [0, 0], [0.45, 0], [0.6, 0.12], [0.6, 0.38], [0.45, 0.5], [0, 0.5]]] },
+  Q: { w: 0.72, strokes: [[[0.35, 0], [0.6, 0.1], [0.7, 0.5], [0.6, 0.9], [0.35, 1], [0.1, 0.9], [0, 0.5], [0.1, 0.1], [0.35, 0]], [[0.42, 0.72], [0.72, 1.02]]] },
   R: { w: 0.65, strokes: [[[0, 1], [0, 0], [0.45, 0], [0.6, 0.12], [0.6, 0.38], [0.45, 0.5], [0, 0.5]], [[0.3, 0.5], [0.65, 1]]] },
   S: { w: 0.65, strokes: [[[0.65, 0.12], [0.5, 0], [0.15, 0], [0, 0.15], [0, 0.35], [0.15, 0.5], [0.5, 0.5], [0.65, 0.65], [0.65, 0.85], [0.5, 1], [0.15, 1], [0, 0.88]]] },
   T: { w: 0.7, strokes: [[[0, 0], [0.7, 0]], [[0.35, 0], [0.35, 1]]] },
   U: { w: 0.65, strokes: [[[0, 0], [0, 0.75], [0.2, 1], [0.45, 1], [0.65, 0.75], [0.65, 0]]] },
+  V: { w: 0.7, strokes: [[[0, 0], [0.35, 1], [0.7, 0]]] },
   W: { w: 0.9, strokes: [[[0, 0], [0.2, 1], [0.45, 0.35], [0.7, 1], [0.9, 0]]] },
+  X: { w: 0.65, strokes: [[[0, 0], [0.65, 1]], [[0.65, 0], [0, 1]]] },
+  Y: { w: 0.66, strokes: [[[0, 0], [0.33, 0.5], [0.66, 0]], [[0.33, 0.5], [0.33, 1]]] },
+  Z: { w: 0.65, strokes: [[[0, 0], [0.65, 0], [0, 1], [0.65, 1]]] },
 };
 
 const LETTER_GAP = 0.22; // space between letters, as a fraction of the letter height
@@ -48,7 +57,8 @@ const SPACE_WIDTH = 0.45;
 let nextId = 300; // each word gets its own boil seed
 
 export class PencilWord {
-  // (x, y) is the top-left corner, or the top-center with { align: 'center' }.
+  // (x, y) is the top-left corner, or the top-center / top-right with
+  // { align: 'center' } / { align: 'right' }.
   // size is the letter height in pixels. Options:
   //   written: false   start blank; call write() to write it on
   //   fixed: true      pinned to the screen (ignores camera scrolling), for scores
@@ -89,7 +99,8 @@ export class PencilWord {
       cursor += (glyph.w + LETTER_GAP) * size;
     }
     this.width = Math.max(0, cursor - LETTER_GAP * size);
-    this.x = this.align === 'center' ? this.anchorX - this.width / 2 : this.anchorX;
+    const shift = { left: 0, center: this.width / 2, right: this.width }[this.align];
+    this.x = this.anchorX - shift;
 
     // Every stroke in pixels, in writing order, for drawing and write-on.
     this.strokes = this.letters.flatMap((letter) =>

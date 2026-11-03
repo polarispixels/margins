@@ -46,7 +46,9 @@ Before anything ships, ask:
 
 Approved: `WALK` `JUMP` `HURRY` `LOOK OUT!` `DANGER`
 
-Proposed, not yet confirmed: `GO` `STOP` `UP` `DOWN` `YES` `NO` `BIG` `LITTLE`
+In use, not yet confirmed: `GO!` `UP!` (Climb milestone messages)
+
+Proposed, not yet confirmed: `STOP` `DOWN` `YES` `NO` `BIG` `LITTLE`
 `IN` `OUT` `HELP` `THE END`
 
 Add new words only if an early reader can read them; when in doubt, check a
@@ -124,7 +126,7 @@ ourselves:
 - The original staircase level (climb the ruled lines to a coffee ring), retired when
   the comic page arrived; it's in git history and could come back as a panel
 - The dog following the figure into later strips; counting stars in Getting Started
-- Climb: enemies, more platform and collectible types, moving or breaking platforms
+- Climb: more enemy types, moving or breaking platforms, shared online high scores
 
 Add new "someday" ideas to this list instead of building them. Move something out
 of this list only when we decide to work on it.

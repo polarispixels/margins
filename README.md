@@ -9,7 +9,8 @@ Two modes, picked on the comic page:
 
 - **Getting Started:** a short tutorial that teaches walking and jumping.
 - **Climb:** an endless vertical platformer, played in portrait. Jump up the page
-  from line to line; collect stars and use springboards.
+  from line to line; collect stars, bounce off springs and paperclips, splat ink
+  blots, catch paper airplanes, and chase the top five high scores.
 
 A small proof of concept built with Phaser 4, Vite, and plain JavaScript. No
 image assets: everything is drawn procedurally.

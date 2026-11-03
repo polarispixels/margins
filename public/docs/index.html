@@ -162,7 +162,9 @@
   <tr><th>Action</th><th>Desktop</th><th>Phone (upright)</th></tr>
   <tr><td>Walk</td><td>Arrow keys, or A / D</td><td>◀ ▶ buttons, bottom left</td></tr>
   <tr><td>Jump</td><td>Up arrow (Space and W also work); hold to jump higher</td><td>▲ button, bottom right</td></tr>
-  <tr><td>Springboard</td><td colspan="2">Land on one and it launches you high</td></tr>
+  <tr><td>Springs, paperclips</td><td colspan="2">Land on one and it launches you high</td></tr>
+  <tr><td>Ink blots</td><td colspan="2">Land on top to splat; touching one any other way ends the run</td></tr>
+  <tr><td>Initials / start cards</td><td>Up/Down change a letter, Left/Right move or choose, type letters, Enter</td><td>Tap ▲ ▼ ✓, the pencil, ▶</td></tr>
   <tr><td>Again (after falling)</td><td>Enter or Space</td><td>Tap ↻</td></tr>
   <tr><td>Back to the comic page</td><td>Esc (any time)</td><td>Tap ◀ after falling</td></tr>
 </table></div>
@@ -205,11 +207,12 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
     ├── pencil.js           Seeded random + wobbly pencil helpers (the boil)
     ├── input.js            PlayerInput: keyboard + touch → { left, right, jump, jumpHeld }
     ├── screen.js           Landscape/portrait layouts, fit any screen shape, paper fades
-    ├── progress.js         Finished panels and best scores (remembered on this device)
+    ├── progress.js         Finished panels, initials, top-five high scores (this device)
+    ├── milestones.js       Climb difficulty by height: difficultyAt(), milestoneAt()
     ├── scenes/
     │   ├── ComicPageScene.js       The comic page: strips of panels you jump into
     │   ├── GettingStartedScene.js  The first tutorial panel
-    │   └── ClimbScene.js           Climb mode: camera, springboards, score, score card
+    │   └── ClimbScene.js           Climb mode: states, camera, blots, flight, milestones
     └── objects/
         ├── Paper.js        Static background (paper, ruled lines, margin, holes) + lineY()
         ├── Platforms.js    Static physics bodies + boiling pencil traces for line segments
@@ -218,7 +221,9 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
         ├── ComicPanel.js   A comic panel: frame, art, and "did he jump in?"
         ├── Dog.js          The doodle dog (plus drawDog / drawHeart for panel art)
         ├── DrawingPencil.js  The pencil that draws the line ahead of the figure
-        ├── ClimbCourse.js  Climb's platforms, springboards, and stars (generated as you rise)
+        ├── ClimbCourse.js  Climb's platforms and what's on them (generated as you rise)
+        ├── climbArt.js     Drawings: springs, paperclips, stars, ink blots, splats, airplanes
+        ├── ClimbCards.js   Climb's initials, start, and score cards
         ├── ScrollingPaper.js  Climb's endless notebook page
         ├── CoffeeRing.js   A coffee ring stain
         └── TouchControls.js  On-screen buttons for phones</code></pre>
@@ -435,7 +440,7 @@ export function boilRng(timeMs, id) {
 <h3>Words on screen: PencilWord</h3>
 <p>
   <code>new PencilWord(scene, 'JUMP', x, y, size, opts)</code> writes a word in boiling pencil using a tiny stroke
-  font in <code>PencilWord.js</code>. <code>{ written: false }</code> starts it blank and <code>write(ms)</code> writes it on
+  font in <code>PencilWord.js</code> (A–Z, 0–9, and !). <code>{ written: false }</code> starts it blank and <code>write(ms)</code> writes it on
   stroke by stroke; <code>fadeOut(ms)</code> erases it (one word at a time); <code>letterBoxes()</code> gives each letter's
   box. Only the letters used so far exist; add a letter by sketching its strokes in a 1-unit-tall box.
   Words must follow <a href="https://github.com/polarispixels/margins/blob/main/docs/PHILOSOPHY.md">the philosophy</a>:
@@ -470,34 +475,71 @@ export function boilRng(timeMs, id) {
 <h2 id="climb">Climb mode</h2>
 <p>
   An endless vertical platformer in portrait. The figure walks and jumps exactly like in the story levels
-  (same jump, jump feel, and controls). The camera follows upward and never scrolls back down, so falling off the
-  bottom of the screen ends the run. The design notes are in
-  <code>docs/superpowers/specs/2026-11-02-climb-mode-design.md</code>.
+  (same jump, jump feel, and controls). The camera follows upward and never scrolls back down, so falling off
+  the bottom of the screen ends the run, and so does touching an ink blot. Design notes:
+  <code>docs/superpowers/specs/2026-11-02-climb-mode-design.md</code> and
+  <code>2026-11-02-climb-extensions-design.md</code>.
 </p>
+
+<h3>Initials, start screen, and high scores</h3>
 <ul>
-  <li><strong>Platforms</strong> are one-way, so you can jump up through them from below. The run starts on a
-    solid floor line. Walking off a platform drops you to whatever is below; falling off the screen ends the run.</li>
-  <li><strong>The page.</strong> <code>ScrollingPaper</code> draws only the visible part of an endless 540-wide sheet:
-    ruled lines at every multiple of 36 px, the red margin at x = 50 (the left wall), and repeating hole punches.
-    The world bounds make the margin and the right page edge walls, with no top or bottom.</li>
-  <li><strong>Generation.</strong> <code>ClimbCourse</code> keeps a screen's worth of platforms ready above the camera.
-    Each new one sits 1–3 ruled lines above the last, is 70–130 px wide, and its center is at most 170 px
-    sideways from the previous one, so every platform is reachable with a held jump (see below). Platforms far below the screen are removed.</li>
-  <li><strong>Springboard.</strong> 10% of platforms carry a pencil spring. The collider calls
-    <code>ClimbScene.landOn()</code> when the figure lands on a platform; landing on the spring launches at
-    <code>springSpeed</code> (about 18 lines) and the coil squashes.</li>
-  <li><strong>Stars.</strong> 30% of the other platforms have a doodle star floating above. Touch it to collect it
-    (it floats up and fades).</li>
-  <li><strong>Score</strong> = ruled lines climbed (the highest point reached) + 10 per star. It's written in pencil
-    digits at the top while you play. Falling shows a score card with the total, ↑ lines, ★ stars, and
-    ↻ / ◀ buttons. The best score is saved on the device and written in the Climb panel's corner.</li>
-  <li><strong>No words.</strong> Climb uses only numbers and pictures, following the Jack test.</li>
+  <li><strong>First time:</strong> an initials card. Three letter slots, each with ▲ ▼ buttons, and ✓ to finish.
+    Keyboard: Up/Down change the letter, Left/Right move between slots, typing a letter fills the slot, Enter
+    finishes. No typing needed, so kids can do it.</li>
+  <li><strong>Start card</strong> (every time Climb opens from the comic page): your initials, a pencil button to
+    change them, and a big ▶. Keyboard: Left/Right choose a button, Enter/Space press it.</li>
+  <li><strong>Score card</strong> after a run: the total, ↑ lines and ★ stars, and the top five with initials. A new
+    high score is boxed in pencil with a star beside it. ↻ starts again right away (skipping the start card),
+    ◀ goes back to the comic page.</li>
+  <li>Initials and the top five live in <code>localStorage</code> (<code>progress.js</code>: <code>getInitials</code>,
+    <code>setInitials</code>, <code>highScores</code>, <code>addHighScore</code>), best effort. The Climb panel on the
+    comic page shows the top score.</li>
+  <li>The cards are in <code>objects/ClimbCards.js</code> (<code>InitialsCard</code>, <code>StartCard</code>,
+    <code>ScoreCard</code>), sharing a <code>Card</code> base with pencil buttons and icons.</li>
 </ul>
+
+<h3>What's on the page</h3>
+<div class="table-wrap"><table>
+  <tr><th>Thing</th><th>What it does</th></tr>
+  <tr><td>Platforms</td><td>Pencil segments on ruled lines, one-way (jump up through them). The run starts on a solid floor.</td></tr>
+  <tr><td>★ Star</td><td>Touch to collect. Worth <code>starValue</code> points for the height it was made at.</td></tr>
+  <tr><td>Coil spring</td><td>Land on it to launch at <code>springSpeed</code> (about 18 ruled lines).</td></tr>
+  <tr><td>Paperclip</td><td>A bent paperclip ramp. Launches at <code>paperclipSpeed</code> (about 32 lines).</td></tr>
+  <tr><td>Ink blot</td><td>Crawls back and forth on its platform (and, high up, chases you along its line). Fall onto its top
+    to splat it: <code>blotValue</code> points and a bounce (<code>stompSpeed</code>). Touching it any other way ends the run.
+    Drawn in ink (<code>COLORS.ink</code>), the only non-pencil color in Climb, so it reads as danger.</td></tr>
+  <tr><td>Paper airplane</td><td>A rare pickup. Flies you straight up at <code>airplaneSpeed</code> for
+    <code>airplaneSeconds</code>, still steering, safe from blots. It flickers just before it drops you back into normal play.</td></tr>
+</table></div>
+<p>
+  <code>ClimbCourse</code> generates platforms a screen ahead and removes them far below; each platform gets at most one
+  thing, rolled from the difficulty at its height. Drawings live in <code>objects/climbArt.js</code>.
+</p>
+
+<h3>Milestones and difficulty</h3>
+<p>
+  Height is counted in ruled lines climbed (1 point each). Crossing a milestone writes its number and one word near
+  the top of the screen. The whole table is <code>CLIMB.milestones</code> in <code>config.js</code>: each entry lists only
+  what changes at that height, and everything else carries forward. <code>milestones.js</code> turns it into settings with
+  <code>difficultyAt(lines)</code> and finds what to announce with <code>milestoneAt(lines)</code>.
+</p>
+<div class="table-wrap"><table>
+  <tr><th>Lines</th><th>Word</th><th>What changes</th></tr>
+  <tr><td>0</td><td>—</td><td>Wide platforms, gaps of 1–2 lines, lots of stars</td></tr>
+  <tr><td>100</td><td>GO!</td><td>More stars, coil springs, gaps up to 3 lines</td></tr>
+  <tr><td>200</td><td>LOOK OUT!</td><td>Ink blots (slow), paperclips</td></tr>
+  <tr><td>500</td><td>UP!</td><td>Paper airplanes, more and faster blots, stars and blots worth more, smaller platforms</td></tr>
+  <tr><td>1000</td><td>DANGER</td><td>Blots chase you along their line; faster; smaller platforms; bigger rewards</td></tr>
+  <tr><td>every 500 after</td><td>HURRY!</td><td><code>CLIMB.beyond.step</code>: more and faster blots, narrower platforms, bigger rewards, within <code>CLIMB.beyond.limits</code></td></tr>
+</table></div>
+<p>
+  <strong>Reachability is a hard limit</strong>, separate from the table: <code>CLIMB.reach</code> caps gaps at 3 ruled lines and
+  sideways steps at 170 px (what a held jump can do), so rebalancing can't create an impossible climb.
+</p>
 <div class="table-wrap"><table>
   <tr><th>Measure</th><th>Value</th></tr>
-  <tr><td>Held jump height</td><td>≈ 137 px ≈ 3.8 ruled lines, so the max gap of 3 lines (108 px) is always reachable</td></tr>
-  <tr><td>Sideways reach on a 3-line jump</td><td>≈ 0.65 s in the air × 260 px/s ≈ 168 px; the worst gap is 170 − 35 − 35 = 100 px edge to edge</td></tr>
-  <tr><td>Springboard height</td><td>1350² ÷ (2 × 1400) ≈ 650 px ≈ 18 ruled lines</td></tr>
+  <tr><td>Held jump height</td><td>≈ 137 px ≈ 3.8 ruled lines, so a 3-line gap (108 px) is always reachable</td></tr>
+  <tr><td>Sideways reach on a 3-line jump</td><td>≈ 0.65 s in the air × 260 px/s ≈ 168 px</td></tr>
 </table></div>
 
 <h2 id="tuning">Tuning reference</h2>
@@ -515,13 +557,13 @@ export function boilRng(timeMs, id) {
   <tr><td><code>PAPER.lineSpacing</code></td><td>36</td><td>Distance between ruled lines. Moves every platform.</td></tr>
   <tr><td><code>PAPER.marginX</code></td><td>110</td><td>The red margin line and the wall.</td></tr>
   <tr><td><code>TOUCH.buttonRadius / alpha</code></td><td>46 / 0.55</td><td>Size and opacity of the phone buttons.</td></tr>
-  <tr><td><code>CLIMB.springSpeed</code></td><td>1350</td><td>Climb: upward speed from a springboard.</td></tr>
   <tr><td><code>CLIMB.walkSpeed</code></td><td>260</td><td>Climb: left/right speed.</td></tr>
-  <tr><td><code>CLIMB.minGapLines / maxGapLines</code></td><td>1 / 3</td><td>Climb: ruled lines between one platform and the next. Keep the max below a held jump (~3.8 lines).</td></tr>
-  <tr><td><code>CLIMB.platformMinWidth / platformMaxWidth</code></td><td>70 / 130</td><td>Climb: platform widths.</td></tr>
-  <tr><td><code>CLIMB.maxSideStep</code></td><td>170</td><td>Climb: how far sideways a platform can be from the last one.</td></tr>
-  <tr><td><code>CLIMB.springChance / tokenChance</code></td><td>0.1 / 0.3</td><td>Climb: how often platforms get a springboard or a star.</td></tr>
-  <tr><td><code>CLIMB.tokenValue</code></td><td>10</td><td>Climb: points per star (each ruled line is 1 point).</td></tr>
+  <tr><td><code>CLIMB.springSpeed / paperclipSpeed</code></td><td>1350 / 1800</td><td>Climb: launch speeds (about 18 / 32 ruled lines).</td></tr>
+  <tr><td><code>CLIMB.stompSpeed</code></td><td>650</td><td>Climb: bounce after splatting an ink blot.</td></tr>
+  <tr><td><code>CLIMB.airplaneSpeed / airplaneSeconds</code></td><td>480 / 3</td><td>Climb: paper airplane flight.</td></tr>
+  <tr><td><code>CLIMB.reach</code></td><td>3 lines / 170 px</td><td>Climb: hard limits that keep every platform reachable.</td></tr>
+  <tr><td><code>CLIMB.milestones</code></td><td>table</td><td>Climb: per-height settings (platform widths, gaps, star/spring/paperclip/blot/airplane chances, blot speed and chasing, point values) and the milestone words.</td></tr>
+  <tr><td><code>CLIMB.beyond</code></td><td>every 500</td><td>Climb: how difficulty keeps stepping up past the last milestone, and its limits.</td></tr>
   <tr><td><code>CLIMB.cameraLead</code></td><td>0.4</td><td>Climb: how far down the screen the figure stays while rising.</td></tr>
   <tr><td><code>COLORS.*</code></td><td>—</td><td>Paper, ruled line, margin, pencil, and coffee colors.</td></tr>
 </table></div>

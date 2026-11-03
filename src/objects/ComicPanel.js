@@ -9,7 +9,7 @@
 import { COLORS } from '../config.js';
 import { boilRng, pencilLine, pencilCircle, pencilPolyline } from '../pencil.js';
 import { drawDog, drawHeart } from './Dog.js';
-import { drawStar } from './ClimbCourse.js';
+import { drawStar } from './climbArt.js';
 import { PencilWord } from './PencilWord.js';
 
 export class ComicPanel {

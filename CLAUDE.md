@@ -24,7 +24,9 @@ and what's deliberately out of scope for now.
   waits at the end. Finished panels show their story art (saved in `progress.js`).
 - The second strip, "Climb", is a separate **mode** (`ClimbScene`): an endless vertical
   platformer played in **portrait**, with the same walk and jump controls as the story
-  levels plus springboards. Score = ruled lines climbed + 10 per star. The comic page is
+  levels. Springs and paperclips launch you, ink blots crawl on platforms (stomp them or
+  lose), paper airplanes fly you up, and height milestones raise both rewards and danger.
+  Initials and a top-five high score table are saved on the device. The comic page is
   the mode picker.
 - This is a learning / for-fun proof of concept. Keep it small.
 
@@ -53,11 +55,12 @@ margins/
     ├── pencil.js           # Seeded random + wobbly "pencil" drawing helpers (the boil)
     ├── input.js            # PlayerInput: keyboard + touch -> { left, right, jump, jumpHeld }
     ├── screen.js           # useLayout (landscape/portrait), watchScreen, paper-colored fades
-    ├── progress.js         # Finished panels and best scores, in localStorage (best effort)
+    ├── progress.js         # Finished panels, initials, top-five scores (localStorage, best effort)
+    ├── milestones.js       # Climb difficulty by height: difficultyAt(), milestoneAt()
     ├── scenes/
     │   ├── ComicPageScene.js       # The comic page (start scene): jump into a panel
     │   ├── GettingStartedScene.js  # The first tutorial panel
-    │   └── ClimbScene.js           # Climb mode (portrait): camera, springboards, score card
+    │   └── ClimbScene.js           # Climb mode (portrait): states, camera, blots, flight, milestones
     └── objects/
         ├── Paper.js        # Static background: paper, ruled lines, margin, holes; lineY()
         ├── Platforms.js    # Line segments (+ addSolid boxes): physics + boiling pencil trace
@@ -66,7 +69,9 @@ margins/
         ├── ComicPanel.js   # A comic panel: frame, art, and the jump-in trigger
         ├── Dog.js          # The doodle dog; drawDog/drawHeart for panel art
         ├── DrawingPencil.js# The pencil that draws the line ahead of the figure
-        ├── ClimbCourse.js  # Climb's random platforms, springboards, stars
+        ├── ClimbCourse.js  # Climb's random platforms and what's on them
+        ├── climbArt.js     # Climb drawings: springs, paperclips, stars, blots, splats, planes
+        ├── ClimbCards.js   # Climb's initials, start, and score cards (pencil buttons)
         ├── ScrollingPaper.js # Climb's endless notebook page
         ├── CoffeeRing.js   # A coffee ring stain
         └── TouchControls.js# On-screen left / right / jump buttons for phones
@@ -95,10 +100,20 @@ frame) and `jumpHeld`. Design notes: `docs/superpowers/specs/2026-11-02-jump-fee
 own camera (up only) and passes its own fit function to `watchScreen`. `ClimbCourse`
 generates platforms on ruled lines a screen ahead and removes them far below; every
 platform is within reach of the previous one (gap <= `maxGapLines`, sideways <=
-`maxSideStep`; keep `maxGapLines` below a held jump, about 3.8 lines). All tunables are
-under `CLIMB` in `src/config.js`. Walking and jumping use the normal `PLAYER` settings,
-`PlayerInput`, and touch buttons. Design notes:
-`docs/superpowers/specs/2026-11-02-climb-mode-design.md`.
+`maxSideStep`). All tunables are under `CLIMB` in `src/config.js`. Walking and jumping use
+the normal `PLAYER` settings, `PlayerInput`, and touch buttons.
+
+**Difficulty lives in one table:** `CLIMB.milestones` (each entry lists only what changes
+at that height, in ruled lines) plus `CLIMB.beyond` (steps every 500 lines forever, within
+limits). `milestones.js` merges them (`difficultyAt`) and picks the word to announce
+(`milestoneAt`). `CLIMB.reach` is a hard cap that keeps platforms reachable however the
+table is edited; don't remove it. Milestone words must pass the Jack test.
+
+The scene has four states: `initials` → `start` → `playing` → `over`. Cards
+(`ClimbCards.js`) get keys and taps through listeners that are removed on shutdown,
+because `scene.restart()` reuses the scene object and doubled listeners press buttons
+twice. Design notes: `docs/superpowers/specs/2026-11-02-climb-mode-design.md` and
+`2026-11-02-climb-extensions-design.md`.
 
 ## Running it
 

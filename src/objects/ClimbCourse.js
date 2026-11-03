@@ -1,26 +1,38 @@
 // The platforms for Climb: generated randomly above the screen as the camera
 // rises, drawn in boiling pencil on the ruled lines, and removed once they're
-// far below. Some platforms carry a springboard or have a star floating above.
+// far below. What appears on them (springs, paperclips, ink blots, airplanes,
+// stars) depends on how high they are: see difficultyAt() in milestones.js.
 //
 // Each platform is a plain object:
-//   { x, width, y, zone, spring: { x, firedAt } | null, star: { x, y, collectedAt } | null }
+//   { x, width, y, zone, solid, launcher, blot, airplane, star }
+//   launcher: { kind: 'spring' | 'paperclip', x, firedAt } | null
+//   blot:     { x, facing, speed, chases, value, splatAt } | null
+//   airplane: { x, y, takenAt } | null
+//   star:     { x, y, value, collectedAt } | null
 // `zone` is its invisible physics body, and zone.platform points back to it.
 
 import { CLIMB, COLORS, PAPER } from '../config.js';
-import { boilRng, pencilLine, pencilPolyline } from '../pencil.js';
+import { boilRng, pencilLine } from '../pencil.js';
+import { difficultyAt } from '../milestones.js';
+import {
+  drawSpring, drawPaperclip, drawStar, drawBlot, drawSplat, drawAirplane,
+  SPRING_HALF_WIDTH, PAPERCLIP_HALF_WIDTH, BLOT_HALF_WIDTH, BLOT_HEIGHT,
+} from './climbArt.js';
 
 const THICKNESS = 10; // physics body thickness below the line
-const SPRING_HALF_WIDTH = 13;
-const SPRING_HEIGHT = 16;
-const SPRING_SQUASH_MS = 180; // how long the coil stays squashed after launching
+const SQUASH_MS = 180; // how long a launcher stays squashed after launching
 const STAR_RADIUS = 11;
-const STAR_HOVER = 40; // how far above its platform a star floats
-const STAR_POP_MS = 400; // collected stars float up and fade for this long
+const HOVER = 40; // how far above its platform a pickup floats
+const POP_MS = 400; // collected pickups float up and fade for this long
+const SPLAT_MS = 600;
+const MIN_BLOT_PLATFORM = 46; // narrower platforms are too small to crawl on (keep <= the narrowest platform limit)
+const CHASE_BOOST = 1.5; // blots that chase move this much faster
 
 export class ClimbCourse {
   // floorY: world y of the solid starting floor (a ruled line).
   constructor(scene, floorY) {
     this.scene = scene;
+    this.floorY = floorY;
     this.group = scene.physics.add.staticGroup();
     this.graphics = scene.add.graphics();
     this.platforms = [];
@@ -31,29 +43,48 @@ export class ClimbCourse {
     this.lastCenter = CLIMB.width / 2;
   }
 
+  // How many ruled lines above the floor a world y is.
+  linesAt(y) {
+    return (this.floorY - y) / PAPER.lineSpacing;
+  }
+
   // Make sure platforms exist all the way up to world y `y`.
   generateUpTo(y) {
     while (this.topY > y) this.addRandomPlatform();
   }
 
   addRandomPlatform() {
+    const d = difficultyAt(this.linesAt(this.topY));
+
     // A few ruled lines above the last one, so it's always on a ruled line.
-    const gapLines = randomInt(CLIMB.minGapLines, CLIMB.maxGapLines);
-    const y = this.topY - gapLines * PAPER.lineSpacing;
-    const width = randomBetween(CLIMB.platformMinWidth, CLIMB.platformMaxWidth);
+    const y = this.topY - randomInt(1, d.maxGapLines) * PAPER.lineSpacing;
+    const width = randomBetween(d.platformMinWidth, d.platformMaxWidth);
 
     // Not too far sideways from the last one (so it's reachable), and on the page.
     const minCenter = CLIMB.marginX + width / 2 + 6;
     const maxCenter = CLIMB.width - width / 2 - 6;
-    const center = clamp(this.lastCenter + randomBetween(-CLIMB.maxSideStep, CLIMB.maxSideStep), minCenter, maxCenter);
+    const center = clamp(this.lastCenter + randomBetween(-d.maxSideStep, d.maxSideStep), minCenter, maxCenter);
     const platform = this.addPlatform(center - width / 2, width, y);
 
-    // Maybe a springboard, otherwise maybe a star.
-    if (Math.random() < CLIMB.springChance) {
-      const room = width / 2 - SPRING_HALF_WIDTH - 4;
-      platform.spring = { x: center + randomBetween(-room, room), firedAt: -Infinity };
-    } else if (Math.random() < CLIMB.tokenChance) {
-      platform.star = { x: center, y: y - STAR_HOVER, collectedAt: null };
+    // At most one thing per platform, rarest first.
+    const spot = (halfWidth) => center + randomBetween(-1, 1) * Math.max(0, width / 2 - halfWidth - 4);
+    if (Math.random() < d.paperclipChance) {
+      platform.launcher = { kind: 'paperclip', x: spot(PAPERCLIP_HALF_WIDTH), firedAt: -Infinity };
+    } else if (Math.random() < d.springChance) {
+      platform.launcher = { kind: 'spring', x: spot(SPRING_HALF_WIDTH), firedAt: -Infinity };
+    } else if (Math.random() < d.airplaneChance) {
+      platform.airplane = { x: center, y: y - HOVER, takenAt: null };
+    } else if (width >= MIN_BLOT_PLATFORM && Math.random() < d.blotChance) {
+      platform.blot = {
+        x: spot(BLOT_HALF_WIDTH),
+        facing: Math.random() < 0.5 ? -1 : 1,
+        speed: d.blotSpeed,
+        chases: d.blotChases,
+        value: d.blotValue,
+        splatAt: null,
+      };
+    } else if (Math.random() < d.starChance) {
+      platform.star = { x: center, y: y - HOVER, value: d.starValue, collectedAt: null };
     }
 
     this.topY = y;
@@ -69,7 +100,7 @@ export class ClimbCourse {
       zone.body.checkCollision.left = false;
       zone.body.checkCollision.right = false;
     }
-    const platform = { x, width, y, zone, solid, spring: null, star: null };
+    const platform = { x, width, y, zone, solid, launcher: null, blot: null, airplane: null, star: null };
     zone.platform = platform;
     this.platforms.push(platform);
     return platform;
@@ -84,19 +115,70 @@ export class ClimbCourse {
     });
   }
 
-  // Is the figure landing on this platform's springboard?
-  isOnSpring(platform, x) {
-    return platform.spring !== null && Math.abs(x - platform.spring.x) < SPRING_HALF_WIDTH + 8;
+  // The springboard or paperclip under x on this platform, if any.
+  launcherAt(platform, x) {
+    const l = platform.launcher;
+    if (!l) return null;
+    const half = l.kind === 'paperclip' ? PAPERCLIP_HALF_WIDTH : SPRING_HALF_WIDTH;
+    return Math.abs(x - l.x) < half + 8 ? l : null;
   }
 
-  // Collect any stars the figure is touching. Returns how many it just got.
-  collectStars(point, time) {
-    let got = 0;
+  // Move the ink blots back and forth along their platforms. Blots that chase
+  // turn toward the figure, faster, when he's standing on their line.
+  update(dt, body) {
     for (const p of this.platforms) {
-      const star = p.star;
-      if (star && star.collectedAt === null && Math.hypot(point.x - star.x, point.y - star.y) < STAR_RADIUS + 18) {
-        star.collectedAt = time;
-        got++;
+      const blot = p.blot;
+      if (!blot || blot.splatAt !== null) continue;
+      let speed = blot.speed;
+      const onMyLine = Math.abs(body.bottom - p.y) < 4 && body.right > p.x && body.left < p.x + p.width;
+      if (blot.chases && onMyLine) {
+        blot.facing = body.center.x < blot.x ? -1 : 1;
+        speed *= CHASE_BOOST;
+      }
+      blot.x += blot.facing * speed * dt;
+      const min = p.x + BLOT_HALF_WIDTH;
+      const max = p.x + p.width - BLOT_HALF_WIDTH;
+      if (blot.x < min || blot.x > max) {
+        blot.x = clamp(blot.x, min, max);
+        blot.facing *= -1; // turn around at the end of the line
+      }
+    }
+  }
+
+  // Is the figure touching an ink blot? Returns null, { kind: 'stomp', value }
+  // (he fell onto its top: it splats), or { kind: 'hit' } (side or below: run over).
+  checkBlots(body, time) {
+    for (const p of this.platforms) {
+      const blot = p.blot;
+      if (!blot || blot.splatAt !== null) continue;
+      const top = p.y - BLOT_HEIGHT;
+      const touching = body.right > blot.x - BLOT_HALF_WIDTH && body.left < blot.x + BLOT_HALF_WIDTH &&
+        body.bottom > top && body.top < p.y;
+      if (!touching) continue;
+      // Falling, with his feet near the blot's top: a stomp.
+      if (body.velocity.y > 0 && body.bottom - top < 14) {
+        blot.splatAt = time;
+        return { kind: 'stomp', value: blot.value };
+      }
+      return { kind: 'hit' };
+    }
+    return null;
+  }
+
+  // Pick up stars and airplanes the figure is touching.
+  // Returns { stars, points, airplane } for what was picked up just now.
+  collectPickups(point, time) {
+    const got = { stars: 0, points: 0, airplane: false };
+    const near = (item) => Math.hypot(point.x - item.x, point.y - item.y) < STAR_RADIUS + 20;
+    for (const p of this.platforms) {
+      if (p.star && p.star.collectedAt === null && near(p.star)) {
+        p.star.collectedAt = time;
+        got.stars++;
+        got.points += p.star.value;
+      }
+      if (p.airplane && p.airplane.takenAt === null && near(p.airplane)) {
+        p.airplane.takenAt = time;
+        got.airplane = true;
       }
     }
     return got;
@@ -116,45 +198,36 @@ export class ClimbCourse {
         pencilLine(g, rng, p.x, p.y - 4, p.x, p.y + 5, { ...style, width: 2, wobble: 0.8 });
         pencilLine(g, rng, end, p.y - 4, end, p.y + 5, { ...style, width: 2, wobble: 0.8 });
       }
-      if (p.spring) drawSpring(g, rng, p.spring.x, p.y, time - p.spring.firedAt < SPRING_SQUASH_MS);
+
+      const l = p.launcher;
+      if (l) {
+        const squashed = time - l.firedAt < SQUASH_MS;
+        if (l.kind === 'spring') drawSpring(g, rng, l.x, p.y, squashed);
+        else drawPaperclip(g, rng, l.x, p.y, squashed);
+      }
+
+      const blot = p.blot;
+      if (blot) {
+        if (blot.splatAt === null) drawBlot(g, rng, blot.x, p.y, blot.facing, time);
+        else if (time - blot.splatAt < SPLAT_MS) drawSplat(g, rng, blot.x, p.y, (time - blot.splatAt) / SPLAT_MS);
+      }
+
+      // Pickups float with a gentle bob, then pop up and fade when collected.
+      const bob = (item) => Math.sin(time / 300 + item.x) * 3;
+      const pop = (at) => (time - at) / POP_MS;
       if (p.star) {
-        const star = p.star;
-        if (star.collectedAt === null) {
-          const bob = Math.sin(time / 300 + star.x) * 3; // gentle floating
-          drawStar(g, rng, star.x, star.y + bob, STAR_RADIUS);
-        } else if (time - star.collectedAt < STAR_POP_MS) {
-          const t = (time - star.collectedAt) / STAR_POP_MS;
-          drawStar(g, rng, star.x, star.y - t * 30, STAR_RADIUS * (1 + t * 0.6), { alpha: 0.9 * (1 - t) });
+        const s = p.star;
+        if (s.collectedAt === null) drawStar(g, rng, s.x, s.y + bob(s), STAR_RADIUS);
+        else if (pop(s.collectedAt) < 1) {
+          const t = pop(s.collectedAt);
+          drawStar(g, rng, s.x, s.y - t * 30, STAR_RADIUS * (1 + t * 0.6), { alpha: 0.9 * (1 - t) });
         }
+      }
+      if (p.airplane && p.airplane.takenAt === null) {
+        drawAirplane(g, rng, p.airplane.x, p.airplane.y + bob(p.airplane), 0.9);
       }
     }
   }
-}
-
-// A springboard: a zigzag coil standing on the line with a plate on top.
-function drawSpring(g, rng, x, lineY, squashed) {
-  const height = squashed ? SPRING_HEIGHT * 0.45 : SPRING_HEIGHT;
-  const top = lineY - height;
-  const style = { color: COLORS.pencil, width: 2.5, wobble: 0.7 };
-  const coil = [];
-  const turns = 4;
-  for (let i = 0; i <= turns * 2; i++) {
-    const side = i % 2 === 0 ? -1 : 1;
-    coil.push({ x: x + side * (SPRING_HALF_WIDTH - 4), y: lineY - (i / (turns * 2)) * height });
-  }
-  pencilPolyline(g, rng, coil, style);
-  pencilLine(g, rng, x - SPRING_HALF_WIDTH, top, x + SPRING_HALF_WIDTH, top, { ...style, width: 3.5 });
-}
-
-// A five-pointed doodle star. Exported for the score card.
-export function drawStar(g, rng, cx, cy, radius, opts = {}) {
-  const points = [];
-  for (let i = 0; i <= 10; i++) {
-    const angle = -Math.PI / 2 + (i / 10) * Math.PI * 2;
-    const r = i % 2 === 0 ? radius : radius * 0.45; // alternate outer and inner points
-    points.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
-  }
-  pencilPolyline(g, rng, points, { color: COLORS.pencil, width: 2, wobble: 0.6, ...opts });
 }
 
 function randomBetween(min, max) {

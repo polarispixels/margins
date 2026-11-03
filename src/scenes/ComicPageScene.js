@@ -14,7 +14,7 @@ import { ComicPanel } from '../objects/ComicPanel.js';
 import { PencilWord } from '../objects/PencilWord.js';
 import { PlayerInput } from '../input.js';
 import { useLayout, LANDSCAPE, watchScreen, fitToScreen } from '../screen.js';
-import { isComplete, bestScore } from '../progress.js';
+import { isComplete, highScores } from '../progress.js';
 import { PANEL_ID as GETTING_STARTED } from './GettingStartedScene.js';
 import { MODE_ID as CLIMB } from './ClimbScene.js';
 
@@ -53,7 +53,7 @@ export class ComicPageScene extends Phaser.Scene {
         art: def.id,
         // A panel that was just finished starts blank and fades its art in after the zoom out.
         completed: isComplete(def.id) && !justFinished,
-        best: bestScore(def.id),
+        best: highScores(def.id)[0]?.score ?? 0,
       });
       return {
         def,
