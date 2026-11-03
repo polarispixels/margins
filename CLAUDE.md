@@ -28,9 +28,11 @@ and what's deliberately out of scope for now.
   on the strip he's standing on. Strips are data in `src/data/strips.js`; locked panels
   (a word and a faint picture) and empty slots mean "more coming". Panel words and strip
   titles are labels, not instructions.
-- The first strip, "Getting Started", has one playable panel (`GettingStartedScene`) plus locked ones: the line
-  draws itself as you walk (WALK), the word JUMP is a solid obstacle, and a sleeping dog
-  waits at the end. Finished panels show their story art (saved in `progress.js`).
+- The first strip, "Getting Started", has three panels: WALK (`GettingStartedScene`: the line
+  draws itself as you walk, the word JUMP is a solid obstacle, and a sleeping dog waits at the
+  end), CLIMB (`LearnClimbScene`: a cat leads you up a ladder, a spring, a paperclip, a drop,
+  and a last ladder) and SWING (`LearnSwingScene`: a monkey leads you across rope swings).
+  Finished panels show their story art (saved in `progress.js`).
 - The second strip, "Launch" (`LaunchScene`), is a long side-scrolling story level on one
   sheet: a forest with squirrels and birds, rope swings over a ravine, a river crossing
   (sinking lily pads, an alligator, a fish, a drifting log), a UFO chase (falling trees, a
@@ -38,7 +40,7 @@ and what's deliberately out of scope for now.
   at the rocket pad (the first colored pencil), then a rocket flight (Up/Down) past a
   fireball to a city. Checkpoint flags: falling in or getting caught sends you back to the
   last one. It has music and sound effects, made in code (`audio.js`), with a remembered mute button.
-- The third strip, "Climb", is a separate **mode** (`ClimbScene`): an endless vertical
+- The third strip, "UP" (the panel word is UP; the scene is still `ClimbScene`), is a separate **mode** (`ClimbScene`): an endless vertical
   platformer played in **portrait**, with the same walk and jump controls as the story
   levels. Springs and paperclips launch you, ink blots crawl on platforms (stomp them or
   lose), paper airplanes fly you up, and height milestones raise both rewards and danger.
@@ -87,7 +89,9 @@ margins/
     │                       #   store (localStorage), speech (speechSynthesis), dates
     ├── scenes/
     │   ├── ComicPageScene.js       # The comic page (start scene): jump into a panel
-    │   ├── GettingStartedScene.js  # The first tutorial panel
+    │   ├── GettingStartedScene.js  # The first tutorial panel (WALK)
+    │   ├── LearnClimbScene.js      # Tutorial: a cat leads you up (ladder, spring, paperclip)
+    │   ├── LearnSwingScene.js      # Tutorial: a monkey leads you across rope swings
     │   ├── LaunchScene.js          # Launch: wires the sections; checkpoints, rocket, flight, city
     │   ├── ClimbScene.js           # Climb mode (portrait): states, camera, blots, flight, milestones
     │   └── ReadScene.js            # Read mode: the word, picture cards, tap-to-hear, the round
@@ -100,6 +104,8 @@ margins/
         ├── Ladder.js       # The margin ladder: touch + Up/Down starts a climb, Left/Right steps off
         ├── worldArt.js     # Small drawings for locked panels (one noun each)
         ├── Dog.js          # The doodle dog; drawDog/drawHeart for panel art
+        ├── animalArt.js    # The cat and the monkey (drawCat, drawMonkey): guides and panel art
+        ├── Guide.js        # A guide animal that waits for you, calls, then does its next step
         ├── DrawingPencil.js# The pencil that draws the line ahead of the figure
         ├── ClimbCourse.js  # Climb's random platforms and what's on them
         ├── climbArt.js     # Climb drawings: springs, paperclips, stars, blots, splats, planes
@@ -151,6 +157,19 @@ and the floor collider is off while climbing so he passes through the lines. The
 shows its `ladder` layout (▲ ▼) at the ladder; there ▲ also counts as jump, so at the top
 floor it jumps instead of climbing. Off-screen panels and words are hidden, not drawn. Design notes:
 `docs/superpowers/specs/2026-11-03-newspaper-home-page-design.md`.
+
+## Getting Started tutorials
+
+Three panels teach one skill each: WALK (`getting-started`), CLIMB (`learn-climb`, scene
+`LearnClimb`) and SWING (`learn-swing`, scene `LearnSwing`). Each level marks its panel
+complete when you finish and returns to the comic page. CLIMB and SWING are led by a
+`Guide` (`objects/Guide.js`): an animal that waits until you are within
+`LEARN.guideWaitDistance`, calls out, then does its next step. Steps are `walk`, `climb`,
+`bounce`, `swing` and `drop`; an `auto` step starts right after the one before it, and a
+`swing` step with a `pivot` and `length` rides a real pendulum arc. Nothing in these levels
+can hurt you. SWING reuses `RopeSwings`, which takes options (`ropes`, `top`, `length`) so
+ropes can hang anywhere (Launch's are the defaults). Tunables are under `LEARN` in
+`src/config.js`. Spec: `docs/superpowers/specs/2026-11-03-climb-and-swing-design.md`.
 
 ## Launch
 

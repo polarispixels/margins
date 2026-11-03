@@ -142,12 +142,14 @@
   world map, strips are worlds, panels are levels. The stick figure walks along a strip's floor line and
   <strong>jumps up into a panel</strong> to play it. A <strong>ladder in the margin</strong> joins the floors, so
   he can climb between strips. Locked panels (a word and a faint picture) and empty slots mean more is coming.
-  The first strip, <em>Getting Started</em>, has one playable panel:
-  a tutorial where the page draws itself as you walk, the word JUMP is the obstacle, and a sleeping dog
-  waits at the end. The second strip, <em>Launch</em>, is a long side-scrolling story level: run through a forest
+  The first strip, <em>Getting Started</em>, has three playable panels.
+  WALK is a tutorial where the page draws itself as you walk, the word JUMP is the obstacle, and a sleeping dog
+  waits at the end. CLIMB is led by a cat: climb a ladder, ride a spring and a paperclip up the page, hop down,
+  and climb to the top. SWING is led by a monkey: grab a rope, let go, pump the swing for a wide gap,
+  then swing from one rope to the next. Nothing in these two can hurt you. The second strip, <em>Launch</em>, is a long side-scrolling story level: run through a forest
   (rope swings, a river with an alligator), escape a UFO and its alien, press colored switches in the right
   order to start the rocket, then fly it to a city while dodging a fireball that bursts into fireworks. The third strip,
-  <em>Climb</em>, is a different <strong>mode</strong>: an endless vertical
+  <em>UP</em>, is a different <strong>mode</strong>: an endless vertical
   platformer played in <strong>portrait</strong>. The fourth strip, <em>Read</em>, is the reading game: read a
   word, jump up into its picture (or tap it), and the game quietly adapts to the reader. The comic page is how you pick between them.
 </p>
@@ -259,7 +261,9 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
     │   └── dates.js        Day strings for "different days" and review dates
     ├── scenes/
     │   ├── ComicPageScene.js       The comic page: a tall newspaper page of strips
-    │   ├── GettingStartedScene.js  The first tutorial panel
+    │   ├── GettingStartedScene.js  The first tutorial panel (WALK)
+    │   ├── LearnClimbScene.js      Tutorial: a cat leads you up (ladder, spring, paperclip)
+    │   ├── LearnSwingScene.js      Tutorial: a monkey leads you across rope swings
     │   ├── LaunchScene.js          Launch: wires the sections together; checkpoints, rocket, flight, city
     │   ├── ClimbScene.js           Climb mode: states, camera, blots, flight, milestones
     │   └── ReadScene.js            Read mode: the word, the picture cards, the round
@@ -272,6 +276,8 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
         ├── Ladder.js       The margin ladder on the comic page
         ├── worldArt.js     Small drawings for locked panels
         ├── Dog.js          The doodle dog (plus drawDog / drawHeart for panel art)
+        ├── animalArt.js    The cat and the monkey: drawCat, drawMonkey
+        ├── Guide.js        A guide animal that waits for you, calls out, then does its next step
         ├── DrawingPencil.js  The pencil that draws the line ahead of the figure
         ├── ClimbCourse.js  Climb's platforms and what's on them (generated as you rise)
         ├── climbArt.js     Drawings: springs, paperclips, stars, ink blots, splats, airplanes
@@ -304,6 +310,8 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
   <tr><td><code>ComicPageScene</code></td><td><code>ComicPage</code></td><td>The comic page. Jumping into a panel zooms the camera into it and starts that panel's level.
     Coming back (<code>{ returningFrom: panelId }</code>) zooms out and fades in the panel's finished art.</td></tr>
   <tr><td><code>GettingStartedScene</code></td><td><code>GettingStarted</code></td><td>The first tutorial panel. Waking the dog marks the panel finished and returns to the comic page.</td></tr>
+  <tr><td><code>LearnClimbScene</code></td><td><code>LearnClimb</code></td><td>The CLIMB tutorial (panel <code>learn-climb</code>). Touching the cat at the top marks the panel finished and returns to the comic page.</td></tr>
+  <tr><td><code>LearnSwingScene</code></td><td><code>LearnSwing</code></td><td>The SWING tutorial (panel <code>learn-swing</code>). Touching the monkey marks the panel finished and returns to the comic page.</td></tr>
   <tr><td><code>LaunchScene</code></td><td><code>Launch</code></td><td>The Launch level. Reaching the city marks the panel finished and returns to the comic page.</td></tr>
   <tr><td><code>ClimbScene</code></td><td><code>Climb</code></td><td>Climb mode, in portrait. Esc or the ◀ button returns to the comic page.</td></tr>
   <tr><td><code>ReadScene</code></td><td><code>Read</code></td><td>Read mode. Esc or the ◀ button returns to the comic page.</td></tr>
@@ -734,6 +742,9 @@ export function boilRng(timeMs, id) {
   <tr><td><code>PAPER.lineSpacing</code></td><td>36</td><td>Distance between ruled lines. Moves every platform.</td></tr>
   <tr><td><code>PAPER.marginX</code></td><td>110</td><td>The red margin line and the wall.</td></tr>
   <tr><td><code>TOUCH.buttonRadius / alpha</code></td><td>46 / 0.55</td><td>Size and opacity of the phone buttons.</td></tr>
+  <tr><td><code>LEARN.guideSpeed / guideWaitDistance / guideCallMs</code></td><td>200 px/s / 140 px / 4 s</td><td>CLIMB and SWING: how fast the guide walks, how close you must be before it moves on, and how long before it calls to you.</td></tr>
+  <tr><td><code>LEARN.springSpeed / paperclipSpeed</code></td><td>950 / 1150</td><td>CLIMB: launch speeds, a little past the line they aim for (about 9 and 13 ruled lines).</td></tr>
+  <tr><td><code>LEARN.swingRopeTop / swingRopeLength / swingRopeCalm / swingFallResetMs</code></td><td>204 / 200 / 1.8 / 800</td><td>SWING: where the ropes hang from, their length, how fast free ropes settle, and the pause before a fall puts you back.</td></tr>
   <tr><td><code>LAUNCH.checkpoints</code></td><td>170 / 1300 / 2300 / 3700 / 7750</td><td>Launch: the flags you come back to.</td></tr>
   <tr><td><code>LAUNCH.ravine / ropes / river / ufoStart / padArea / rocketX / finaleX / cityX / length</code></td><td>see config.js</td><td>Launch: where each part of the level is.</td></tr>
   <tr><td><code>LAUNCH.ropeLength / ropePump / ropeReleaseBoost</code></td><td>200 / 2.4 / 160</td><td>Launch: rope length, how hard holding a direction pumps the swing, the hop when you let go.</td></tr>

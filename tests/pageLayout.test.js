@@ -8,9 +8,9 @@ const layout = layoutPage(STRIPS);
 
 test('strips data', () => {
   assert.equal(STRIPS.length, 7);
-  assert.deepEqual(STRIPS.map((s) => s.title), ['GETTING STARTED', 'LAUNCH', 'CLIMB', 'READ', '', '', '']);
-  assert.deepEqual(STRIPS[0].panels.map((p) => p.word), ['WALK', 'LADDER', 'ROPE']);
-  assert.deepEqual(STRIPS[0].panels.map((p) => p.kind), ['open', 'locked', 'locked']);
+  assert.deepEqual(STRIPS.map((s) => s.title), ['GETTING STARTED', 'LAUNCH', 'UP', 'READ', '', '', '']);
+  assert.deepEqual(STRIPS[0].panels.map((p) => p.word), ['WALK', 'CLIMB', 'SWING']);
+  assert.deepEqual(STRIPS[0].panels.map((p) => p.kind), ['open', 'open', 'open']);
   const lockedWords = STRIPS.slice(4).flatMap((s) => s.panels.map((p) => p.word));
   assert.deepEqual(lockedWords, ['FLY', 'FARM', 'SEA', 'JUNGLE', 'SPACE', 'ICE', 'DINO', 'CITY', 'CANDY', 'GHOST', 'DIG', 'BUGS']);
   for (const i of [2, 3]) {

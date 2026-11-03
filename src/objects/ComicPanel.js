@@ -6,6 +6,10 @@
 // An open panel's art depends on which panel it is:
 //   'getting-started': before the level is finished, a faint sketch (a little guy
 //                      on a line); after, what happened: the guy, his dog, a heart.
+//   'learn-climb':     a faint ladder with a sitting cat at the top; after, the guy
+//                      standing with the cat and a heart.
+//   'learn-swing':     a faint rope with a hanging monkey; after, the guy with the
+//                      monkey and a heart.
 //   'launch':          a rocket on its pad by some trees; after, the rocket flying
 //                      over the city with a firework.
 //   'climb':           a little guy bouncing up short lines past a spring and a
@@ -18,6 +22,7 @@ import { boilRng, pencilLine, pencilCircle, pencilPolyline } from '../pencil.js'
 import { drawDog, drawHeart } from './Dog.js';
 import { drawStar } from './climbArt.js';
 import { drawRocket, drawLaunchPad, drawTree, drawFirework } from './launchArt.js';
+import { drawCat, drawMonkey } from './animalArt.js';
 import { drawWorld } from './worldArt.js';
 import { PencilWord } from './PencilWord.js';
 import { drawPicture } from './PencilPicture.js';
@@ -168,6 +173,8 @@ export class ComicPanel {
   artBox() {
     if (this.art === 'getting-started') return { x: 10, y: 95, width: 165, height: 100 };
     if (this.art === 'launch') return this.completed ? { x: 0, y: 15, width: 185, height: 180 } : { x: 0, y: 40, width: 185, height: 160 };
+    if (this.art === 'learn-climb') return this.completed ? { x: 25, y: 95, width: 135, height: 95 } : { x: 25, y: 35, width: 135, height: 155 };
+    if (this.art === 'learn-swing') return this.completed ? { x: 25, y: 85, width: 135, height: 105 } : { x: 30, y: 12, width: 125, height: 160 };
     if (this.art === 'read') return { x: 30, y: 40, width: 125, height: 130 };
     return { x: 0, y: 0, width: REF.width, height: REF.height };
   }
@@ -193,6 +200,10 @@ export class ComicPanel {
       this.drawLaunchArt(art, rng, time);
     } else if (this.art === 'getting-started') {
       this.drawGettingStartedArt(art, rng, time);
+    } else if (this.art === 'learn-climb') {
+      this.drawLearnClimbArt(art, rng, time);
+    } else if (this.art === 'learn-swing') {
+      this.drawLearnSwingArt(art, rng, time);
     } else {
       drawWorld(art, rng, this.art, REF.width / 2, REF.height / 2, REF.height);
     }
@@ -213,6 +224,47 @@ export class ComicPanel {
       pencilLine(g, rng, 20, groundY, cx, groundY, faint);
       drawStandingFigure(g, rng, 60, groundY, faint);
     }
+  }
+
+  // Before: a faint ladder with the cat sitting at the top.
+  // After: the guy and the cat side by side, with a heart.
+  drawLearnClimbArt(g, rng, time) {
+    const cx = REF.width / 2;
+    const groundY = REF.groundY;
+    if (this.completed) {
+      pencilLine(g, rng, 20, groundY, REF.width - 20, groundY, { color: COLORS.pencil, width: 2.5 });
+      drawStandingFigure(g, rng, cx - 40, groundY);
+      drawCat(g, rng, cx + 35, groundY, { pose: 'sit', facing: -1, time, scale: 1.3 });
+      drawHeart(g, rng, cx - 2, groundY - 75, 16);
+      return;
+    }
+    const faint = { color: COLORS.pencil, width: 2, alpha: 0.35 };
+    const topY = 90;
+    const lx = cx - 30;
+    pencilLine(g, rng, lx - 12, topY, lx - 12, groundY, faint); // rails
+    pencilLine(g, rng, lx + 12, topY, lx + 12, groundY, faint);
+    for (let y = topY + 10; y < groundY; y += 20) pencilLine(g, rng, lx - 12, y, lx + 12, y, faint); // rungs
+    pencilLine(g, rng, lx - 30, topY, REF.width - 20, topY, faint); // the top line
+    drawCat(g, rng, lx + 45, topY, { pose: 'sit', facing: -1, time, scale: 1, alpha: 0.5 });
+  }
+
+  // Before: a faint rope with the monkey hanging from it.
+  // After: the guy and the monkey side by side, with a heart.
+  drawLearnSwingArt(g, rng, time) {
+    const cx = REF.width / 2;
+    const groundY = REF.groundY;
+    if (this.completed) {
+      pencilLine(g, rng, 20, groundY, REF.width - 20, groundY, { color: COLORS.pencil, width: 2.5 });
+      drawStandingFigure(g, rng, cx - 40, groundY);
+      drawMonkey(g, rng, cx + 35, groundY, { pose: 'cheer', facing: -1, time, scale: 1.3 });
+      drawHeart(g, rng, cx - 2, groundY - 85, 16);
+      return;
+    }
+    const faint = { color: COLORS.pencil, width: 2, alpha: 0.35 };
+    const sway = Math.sin(time / 600) * 8;
+    pencilLine(g, rng, cx - 40, 20, cx + 40, 20, faint); // the branch
+    pencilLine(g, rng, cx, 20, cx + sway, 70, faint); // the rope
+    drawMonkey(g, rng, cx + sway, 70, { pose: 'hang', time, scale: 1.2, alpha: 0.5 });
   }
 
   // Before: the rocket waiting on its pad. After: flying over the city, with a firework.

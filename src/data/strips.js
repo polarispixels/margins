@@ -7,10 +7,14 @@ const empty = () => ({ kind: 'empty' });
 export const STRIPS = [
   {
     title: 'GETTING STARTED',
-    panels: [open('getting-started', 'WALK', 'GettingStarted'), locked('LADDER'), locked('ROPE')],
+    panels: [
+      open('getting-started', 'WALK', 'GettingStarted'),
+      open('learn-climb', 'CLIMB', 'LearnClimb'),
+      open('learn-swing', 'SWING', 'LearnSwing'),
+    ],
   },
   { title: 'LAUNCH', panels: [open('launch', 'LAUNCH', 'Launch', { wide: true })] },
-  { title: 'CLIMB', panels: [open('climb', 'CLIMB', 'Climb'), empty(), empty()] },
+  { title: 'UP', panels: [open('climb', 'UP', 'Climb'), empty(), empty()] },
   { title: 'READ', panels: [open('read', 'READ', 'Read'), empty(), empty()] },
   { title: '', panels: [locked('FLY'), locked('FARM'), locked('SEA'), locked('JUNGLE')] },
   { title: '', panels: [locked('SPACE'), locked('ICE'), locked('DINO'), locked('CITY')] },

@@ -47,7 +47,7 @@ Before anything ships, ask:
 Approved: `WALK` `JUMP` `HURRY` `LOOK OUT!` `DANGER`
 
 In use, not yet confirmed: `GO!` `UP!` (Climb milestone messages), `3 2 1 GO!`
-and `THE END` (Launch), `CLIMB` (written beside the home page ladder)
+and `THE END` (Launch), `CLIMB` `SWING` (the Getting Started panel words, and `CLIMB` beside the home page ladder), `UP` (the endless climbing game's panel)
 
 Proposed, not yet confirmed: `STOP` `DOWN` `YES` `NO` `BIG` `LITTLE`
 `IN` `OUT` `HELP`
@@ -117,7 +117,7 @@ challenges can come in later strips.
 When a panel is finished, it shows a little drawing of what happened, so the comic
 page tells the story of what you've played.
 
-The comic page is also how you pick a **mode**: the "Climb" strip's panel opens the
+The comic page is also how you pick a **mode**: the "UP" strip's panel opens the
 endless climbing game, and "Read" opens the reading game. New modes get their own strip
 rather than a separate menu.
 

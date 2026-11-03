@@ -1,6 +1,6 @@
 # Getting Started: CLIMB (the cat) and SWING (the monkey)
 
-**Date:** 2026-11-03 · **Status:** approved to build
+**Date:** 2026-11-03 · **Status:** approved, built 2026-11-03
 
 ## Intent
 
