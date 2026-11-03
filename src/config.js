@@ -302,4 +302,8 @@ export const LEARN = {
   guideSpeed: 200,         // px/s when the guide walks
   guideWaitDistance: 140,  // the guide waits until you're this close
   guideCallMs: 4000,       // if you dawdle this long, the guide calls to you
+  // CLIMB's launchers. Landing lines are 7 and 11 lines above the launcher, so these
+  // carry you a little past them (apex = speed squared / (2 * gravity)) and you drop back on.
+  springSpeed: 950,        // apex ~322 px, about 9 lines: lands on the line 7 lines up
+  paperclipSpeed: 1150,    // apex ~472 px, about 13 lines: lands on the line 11 lines up
 };

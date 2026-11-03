@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { WIDTH, HEIGHT, COLORS, PLAYER } from './config.js';
 import { ComicPageScene } from './scenes/ComicPageScene.js';
 import { GettingStartedScene } from './scenes/GettingStartedScene.js';
+import { LearnClimbScene } from './scenes/LearnClimbScene.js';
 import { ClimbScene } from './scenes/ClimbScene.js';
 import { LaunchScene } from './scenes/LaunchScene.js';
 import { ReadScene } from './scenes/ReadScene.js';
@@ -33,7 +34,7 @@ const game = new Phaser.Game({
   // Phaser's audio is turned off to keep a single audio context.
   audio: { noAudio: true },
   // The first scene in the list starts the game.
-  scene: [ComicPageScene, GettingStartedScene, LaunchScene, ClimbScene, ReadScene],
+  scene: [ComicPageScene, GettingStartedScene, LearnClimbScene, LaunchScene, ClimbScene, ReadScene],
 });
 
 // In development, expose the game so you can poke at it from the browser console,
