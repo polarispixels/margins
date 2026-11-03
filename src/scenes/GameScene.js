@@ -72,6 +72,8 @@ export class GameScene extends Phaser.Scene {
       left: c.left.isDown || k.A.isDown || touch.left,
       right: c.right.isDown || k.D.isDown || touch.right,
       jump: JustDown(k.SPACE) || JustDown(c.up) || JustDown(k.W) || touchJump,
+      // Held state, for variable jump height (let go early for a smaller hop).
+      jumpHeld: k.SPACE.isDown || c.up.isDown || k.W.isDown || touch.jump,
     };
   }
 

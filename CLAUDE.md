@@ -36,6 +36,7 @@ margins/
 ├── package.json
 ├── README.md
 ├── docs/PHILOSOPHY.md      # Who it's for, on-screen words, look & feel, scope. Read first.
+├── docs/superpowers/specs/ # Short design specs, one per feature
 ├── public/docs/index.html  # The docs page; Vite copies public/ into dist/ as-is
 ├── .github/workflows/deploy.yml  # Build + deploy to GitHub Pages on push to main
 └── src/
@@ -56,9 +57,18 @@ margins/
 ## How the boil works
 
 `pencil.js` uses a tiny seeded random number generator. Each object redraws itself
-every frame, but the seed only changes every `BOIL_INTERVAL_MS`, so the wobble
+every frame, but the seed only changes every `BOIL.intervalMs`, so the wobble
 holds still between "boil ticks" and then jumps to a new shape, which is what
 reads as a hand-drawn flipbook.
+
+## Jump feel
+
+`StickFigure.update()` adds coyote time, jump buffering, and variable jump height
+(tap = small hop, hold = full jump). Tunables are `coyoteTimeMs`, `jumpBufferMs`,
+and `jumpCutMultiplier` under `PLAYER` in `src/config.js`. Input arrives as
+`{ left, right, jump, jumpHeld }` from `GameScene.readInput()`, built from both
+keyboard and touch, so any new input source must fill in both `jump` (pressed this
+frame) and `jumpHeld`. Design notes: `docs/superpowers/specs/2026-11-02-jump-feel-design.md`.
 
 ## Running it
 

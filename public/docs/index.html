@@ -146,7 +146,9 @@
   <tr><th>Action</th><th>Desktop</th><th>Phone (landscape)</th></tr>
   <tr><td>Walk</td><td>Arrow keys, or A / D</td><td>◀ ▶ buttons, bottom left</td></tr>
   <tr><td>Jump</td><td>Space (Up arrow and W also work)</td><td>▲ button, bottom right</td></tr>
+  <tr><td>Jump higher</td><td>Hold the jump key</td><td>Hold ▲</td></tr>
 </table></div>
+<p>Tap jump for a small hop, or hold it for the full jump.</p>
 <p>On phones you can hold a direction and tap jump at the same time, and slide your thumb between ◀ and ▶.</p>
 
 <h2 id="running">Running it</h2>
@@ -201,8 +203,9 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
     objects appear on top.</li>
   <li><strong><code>update(time, delta)</code></strong> runs every frame:
     <ol>
-      <li><code>readInput()</code> merges keyboard and touch into one <code>{ left, right, jump }</code> object.
-        <code>jump</code> is true only on the frame the key or button is first pressed.</li>
+      <li><code>readInput()</code> merges keyboard and touch into one <code>{ left, right, jump, jumpHeld }</code> object.
+        <code>jump</code> is true only on the frame the key or button is first pressed; <code>jumpHeld</code> is true
+        for as long as it's held.</li>
       <li><code>player.update(input, dt)</code> sets velocities and animation state. Arcade physics then
         moves the body and resolves collisions.</li>
       <li>If the player's center is inside the coffee ring, <code>completePage()</code> pauses physics,
@@ -308,6 +311,25 @@ export function boilRng(timeMs, id) {
   sine wave of the phase (plus a small base spread so the legs don't overlap when standing), and the
   arms swing opposite to the legs. When the figure stops, the phase resets to standing.
 </p>
+<h3>Jump feel</h3>
+<p>
+  Three standard platformer tricks make jumping forgiving (players press a hair too early or too late
+  all the time, especially young ones) and expressive. All three live in <code>StickFigure.update()</code>
+  and work the same on keyboard and touch. The design notes are in
+  <code>docs/superpowers/specs/2026-11-02-jump-feel-design.md</code>.
+</p>
+<ul>
+  <li><strong>Coyote time</strong> (<code>coyoteTimeMs</code>, 100 ms): after walking off the edge of a line, you can
+    still jump for a moment, like a cartoon coyote running off a cliff. <code>coyoteTimer</code> stays full while
+    on the floor and drains once you leave it.</li>
+  <li><strong>Jump buffering</strong> (<code>jumpBufferMs</code>, 120 ms): a jump pressed just before landing is
+    remembered in <code>jumpBufferTimer</code> and fires on the landing frame.</li>
+  <li><strong>Variable jump height</strong> (<code>jumpCutMultiplier</code>, 0.5): letting go of jump while still rising
+    multiplies the upward speed by 0.5, so a tap is a small hop and holding is the full jump.</li>
+  <li>A jump uses up both timers, so mashing jump can't double jump. Timers are checked <em>before</em> they
+    drain each frame, so each window lasts its full configured length.</li>
+</ul>
+
 <h3>Jumping, squash and stretch</h3>
 <ul>
   <li><strong>Take-off:</strong> velocity is set to −620 px/s, and the figure stretches to 0.8 × 1.25 (thin and tall).</li>
@@ -345,7 +367,8 @@ export function boilRng(timeMs, id) {
 </p>
 <p>
   The jump button is converted into a single-frame press in <code>GameScene.readInput()</code> (down now,
-  not down last frame), so holding it doesn't bunny-hop.
+  not down last frame), so holding it doesn't bunny-hop. Its held state is passed along as
+  <code>jumpHeld</code>, so holding ▲ jumps higher, just like holding the key.
 </p>
 
 <h2 id="level">Editing the level</h2>
@@ -363,13 +386,14 @@ goal: { x: 860, line: 2 },</code></pre>
 <h3>How far can the figure jump?</h3>
 <div class="table-wrap"><table>
   <tr><th>Measure</th><th>Value</th><th>Where it comes from</th></tr>
-  <tr><td>Jump height</td><td>≈ 137 px, so <strong>up to 3 ruled lines</strong></td><td>620² ÷ (2 × 1400)</td></tr>
+  <tr><td>Jump height (held)</td><td>≈ 132–137 px, so <strong>up to 3 ruled lines</strong></td><td>620² ÷ (2 × 1400)</td></tr>
+  <tr><td>Jump height (quick tap)</td><td>≈ 40–65 px, a bit over 1 ruled line</td><td>Released early, speed × <code>jumpCutMultiplier</code></td></tr>
   <tr><td>Air time (same height)</td><td>≈ 0.89 s</td><td>2 × 620 ÷ 1400</td></tr>
   <tr><td>Horizontal reach (same height)</td><td>≈ 210 px</td><td>240 px/s × 0.89 s</td></tr>
 </table></div>
 <p>
-  Climbing 3 lines uses almost the whole jump, so keep horizontal gaps small (40 px or less) for
-  those. The current route: floor → line 9 → line 6 → line 3 → line 2 (goal). Keep the goal reachable
+  Climbing 3 lines uses almost the whole jump and needs jump <em>held</em>, so keep horizontal gaps small
+  (40 px or less) for those. A tap reliably clears one ruled line. The current route: floor → line 9 → line 6 → line 3 → line 2 (goal). Keep the goal reachable
   inside the 960 × 540 area, since on a 16:9 screen nothing outside it is visible.
 </p>
 
@@ -381,6 +405,9 @@ goal: { x: 860, line: 2 },</code></pre>
   <tr><td><code>BOIL.wobble</code></td><td>1.4</td><td>Pixels of sideways jitter on most lines.</td></tr>
   <tr><td><code>PLAYER.runSpeed</code></td><td>240</td><td>Walking speed in px/s.</td></tr>
   <tr><td><code>PLAYER.jumpSpeed</code></td><td>620</td><td>Take-off velocity. Changes jump height (see above).</td></tr>
+  <tr><td><code>PLAYER.coyoteTimeMs</code></td><td>100</td><td>Grace window to jump after walking off a ledge.</td></tr>
+  <tr><td><code>PLAYER.jumpBufferMs</code></td><td>120</td><td>How long an early jump press is remembered before landing.</td></tr>
+  <tr><td><code>PLAYER.jumpCutMultiplier</code></td><td>0.5</td><td>Upward speed multiplier when jump is released early. 1 turns variable height off; higher makes taps jump higher.</td></tr>
   <tr><td><code>PLAYER.gravity</code></td><td>1400</td><td>Downward acceleration in px/s².</td></tr>
   <tr><td><code>PLAYER.startX / startY</code></td><td>180 / 400</td><td>Where each page starts.</td></tr>
   <tr><td><code>PAPER.lineSpacing</code></td><td>36</td><td>Distance between ruled lines. Moves every platform.</td></tr>

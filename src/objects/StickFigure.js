@@ -28,29 +28,66 @@ export class StickFigure {
     this.scaleX = 1; // squash and stretch
     this.scaleY = 1;
     this.wasOnFloor = false;
+
+    // Jump feel timers, in milliseconds. While > 0 they count down.
+    this.coyoteTimer = 0; // "still allowed to jump" after leaving the floor
+    this.jumpBufferTimer = 0; // "jump was pressed recently" before landing
+    this.jumpCutAvailable = false; // true while rising from a jump that can still be cut short
   }
 
-  // input: { left, right, jump } where jump is true only on the frame it's pressed.
+  // input: { left, right, jump, jumpHeld }
+  //   jump     is true only on the frame the button is first pressed
+  //   jumpHeld is true for as long as it's held down
   update(input, dt) {
     const body = this.body;
     const onFloor = body.blocked.down || body.touching.down;
+    const ms = dt * 1000;
 
     // Walking.
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     body.setVelocityX(dir * PLAYER.runSpeed);
     if (dir !== 0) this.facing = dir;
 
-    // Jumping: stretch tall and thin on take-off.
-    if (input.jump && onFloor) {
-      body.setVelocityY(-PLAYER.jumpSpeed);
-      this.setScale(0.8, 1.25);
-    }
-
-    // Landing: squash short and wide.
+    // Landing: squash short and wide. Done before the jump check so a
+    // buffered jump on the landing frame shows the take-off stretch instead.
     if (onFloor && !this.wasOnFloor) {
       this.setScale(1.3, 0.7);
     }
     this.wasOnFloor = onFloor;
+
+    // Coyote time: standing on the floor keeps the window full. Once we walk
+    // off a ledge it drains, and until it's empty we can still jump.
+    if (onFloor) this.coyoteTimer = PLAYER.coyoteTimeMs;
+
+    // Jump buffering: remember a press for a little while, so pressing jump
+    // just before landing still counts.
+    if (input.jump) this.jumpBufferTimer = PLAYER.jumpBufferMs;
+
+    // Jump when there's a recent press and we're on (or just left) the floor.
+    if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
+      body.setVelocityY(-PLAYER.jumpSpeed);
+      this.setScale(0.8, 1.25); // stretch tall and thin on take-off
+      // Use up both, so one press can't jump twice.
+      this.jumpBufferTimer = 0;
+      this.coyoteTimer = 0;
+      this.jumpCutAvailable = true;
+    }
+
+    // Drain the timers *after* the check, so each window lasts its full length
+    // (draining first would quietly shave a frame off both).
+    if (!onFloor) this.coyoteTimer = Math.max(0, this.coyoteTimer - ms);
+    this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - ms);
+
+    // Variable jump height: letting go while still rising cuts the jump short.
+    // A tap makes a small hop; holding gives the full jump.
+    if (this.jumpCutAvailable) {
+      if (body.velocity.y >= 0) {
+        this.jumpCutAvailable = false; // already falling; nothing to cut
+      } else if (!input.jumpHeld) {
+        body.setVelocityY(body.velocity.y * PLAYER.jumpCutMultiplier);
+        this.jumpCutAvailable = false;
+      }
+    }
 
     // Ease the squash/stretch back to normal. Using dt keeps it frame-rate independent.
     const ease = 1 - Math.exp(-dt * 12);

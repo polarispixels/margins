@@ -42,6 +42,10 @@ export const PLAYER = {
   bodyHeight: 60,
   runSpeed: 240, // px per second
   jumpSpeed: 620, // initial upward velocity
+  // Jump feel. Timers are in milliseconds.
+  coyoteTimeMs: 100, // grace window to still jump just after walking off a ledge
+  jumpBufferMs: 120, // a jump pressed this long before landing fires on landing
+  jumpCutMultiplier: 0.5, // releasing jump while rising multiplies upward speed by this (1 = off)
   gravity: 1400,
   lineWidth: 3,
 };
