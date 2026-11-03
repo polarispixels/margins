@@ -54,6 +54,7 @@ margins/
 ├── README.md
 ├── docs/PHILOSOPHY.md      # Who it's for, on-screen words, look & feel, scope. Read first.
 ├── docs/superpowers/specs/ # Short design specs, one per feature
+├── docs/reading-framework.md # Plan for a future adaptive reading game (not built yet)
 ├── public/docs/index.html  # The docs page; Vite copies public/ into dist/ as-is
 ├── .github/workflows/deploy.yml  # Build + deploy to GitHub Pages on push to main
 └── src/
