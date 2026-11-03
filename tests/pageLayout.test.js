@@ -12,7 +12,7 @@ test('strips data', () => {
   assert.deepEqual(STRIPS[0].panels.map((p) => p.word), ['WALK', 'LADDER', 'ROPE']);
   assert.deepEqual(STRIPS[0].panels.map((p) => p.kind), ['open', 'locked', 'locked']);
   const lockedWords = STRIPS.slice(4).flatMap((s) => s.panels.map((p) => p.word));
-  assert.deepEqual(lockedWords, ['FLY', 'FARM', 'SEA', 'JUNGLE', 'SPACE', 'ICE', 'DINO', 'CITY', 'CANDY']);
+  assert.deepEqual(lockedWords, ['FLY', 'FARM', 'SEA', 'JUNGLE', 'SPACE', 'ICE', 'DINO', 'CITY', 'CANDY', 'GHOST', 'DIG', 'BUGS']);
   for (const i of [2, 3]) {
     assert.deepEqual(STRIPS[i].panels.map((p) => p.kind), ['open', 'empty', 'empty']);
   }
@@ -38,6 +38,11 @@ test('widths', () => {
   const row = layout.strips[0].panels;
   for (const p of row) assert.equal(p.width, w);
   assert.equal(row[0].x, 140);
+  const w4 = (800 - 3 * 16) / 4;
+  for (const s of layout.strips.slice(4)) {
+    assert.equal(s.panels.length, 4);
+    for (const p of s.panels) assert.equal(p.width, w4);
+  }
   const launch = layout.strips[1].panels[0];
   assert.equal(launch.x, 140);
   assert.equal(launch.width, 800);

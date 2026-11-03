@@ -12,7 +12,7 @@ export const STRIPS = [
   { title: 'LAUNCH', panels: [open('launch', 'LAUNCH', 'Launch', { wide: true })] },
   { title: 'CLIMB', panels: [open('climb', 'CLIMB', 'Climb'), empty(), empty()] },
   { title: 'READ', panels: [open('read', 'READ', 'Read'), empty(), empty()] },
-  { title: '', panels: [locked('FLY'), locked('FARM'), locked('SEA')] },
-  { title: '', panels: [locked('JUNGLE'), locked('SPACE'), locked('ICE')] },
-  { title: '', panels: [locked('DINO'), locked('CITY'), locked('CANDY')] },
+  { title: '', panels: [locked('FLY'), locked('FARM'), locked('SEA'), locked('JUNGLE')] },
+  { title: '', panels: [locked('SPACE'), locked('ICE'), locked('DINO'), locked('CITY')] },
+  { title: '', panels: [locked('CANDY'), locked('GHOST'), locked('DIG'), locked('BUGS')] },
 ];
