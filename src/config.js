@@ -81,7 +81,7 @@ export const CLIMB = {
 
   // Difficulty by height, in ruled lines climbed. Each entry lists only what
   // changes at that height; everything else carries forward from the entry before.
-  // `word` is written on screen when the milestone is crossed (keep it Jack-readable).
+  // `word` is written on screen when the milestone is crossed (keep it readable for an early reader).
   milestones: [
     {
       at: 0,

@@ -5,7 +5,7 @@
 ## Why
 
 Jumping is the core verb in Margins, and it currently only fires on the exact
-frame the figure is on the floor. Players (Jack especially) press jump a hair
+frame the figure is on the floor. Players (early readers especially) press jump a hair
 late after walking off a line, or a hair early before landing, and the game
 silently ignores them. That reads as "the game is broken", not "I missed".
 Three standard platformer techniques make the jump forgiving and expressive.
@@ -64,7 +64,7 @@ Air control changes, double jump, wall jump, acceleration/friction on walking.
 - Variable height, real keyboard and real touch: 40 ms tap ≈ 60–66 px,
   500 ms hold = 132 px. Injected 1-frame tap = 39 px.
 
-## Accessibility note (Jack test)
+## Accessibility note (early reader test)
 
 Short taps now give lower hops. Climbing three ruled lines (the level's tallest
 step) needs the jump held, not tapped. The shortest possible tap still clears

@@ -9,22 +9,22 @@ and if it's a big call, ask before building.
 
 **Everyone.** Kids, teenagers, moms and dads.
 
-Our benchmark player is **Jack**, an early reader who is reading *Go, Dog. Go!*
-right now. **If it works for Jack, it works for everybody.**
+Our benchmark player is **an early reader**, a child at about the level of
+*Go, Dog. Go!* **If it works for an early reader, it works for everybody.**
 
 That isn't "making it for little kids." Great interfaces work for everyone, so
 simplicity here is an accessibility principle. Done right, Margins should also feel
 nostalgic and interesting to older players, like the doodles in the back of a
 school notebook come to life.
 
-### The Jack test
+### The early reader test
 
 Before anything ships, ask:
 
-- Could Jack play this **without a grown-up explaining it**?
-- Could Jack **read every word** on the screen?
-- When Jack fails, does he **want to try again** instead of feeling bad?
-- Would a parent watching over his shoulder **smile**?
+- Could an early reader play this **without a grown-up explaining it**?
+- Could they **read every word** on the screen?
+- When they fail, do they **want to try again** instead of feeling bad?
+- Would a parent watching over their shoulder **smile**?
 
 ## Words on screen
 
@@ -141,7 +141,7 @@ of this list only when we decide to work on it.
 ## For contributors (humans and agents)
 
 1. Read this page first.
-2. Run the Jack test on anything players will see.
+2. Run the early reader test on anything players will see.
 3. Keep on-screen text to the starter vocabulary, one word at a time.
 4. If you change the philosophy, update this page in the same commit, and say why
    in the commit message.

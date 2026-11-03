@@ -7,8 +7,8 @@ A tiny browser platformer that lives on a sheet of lined notebook paper.
 - **Repo:** https://github.com/polarispixels/margins (deploys to GitHub Pages on push to `main`)
 
 **Read [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) before designing anything players will see.**
-It is the foundation of the look and feel: who the game is for (all ages, with Jack, an early
-reader, as the benchmark), "one big word at a time, right when it's needed," how levels teach,
+It is the foundation of the look and feel: who the game is for (all ages, with an early
+reader as the benchmark), "one big word at a time, right when it's needed," how levels teach,
 and what's deliberately out of scope for now.
 
 ## Concept
@@ -169,7 +169,7 @@ the normal `PLAYER` settings, `PlayerInput`, and touch buttons.
 at that height, in ruled lines) plus `CLIMB.beyond` (steps every 500 lines forever, within
 limits). `milestones.js` merges them (`difficultyAt`) and picks the word to announce
 (`milestoneAt`). `CLIMB.reach` is a hard cap that keeps platforms reachable however the
-table is edited; don't remove it. Milestone words must pass the Jack test.
+table is edited; don't remove it. Milestone words must pass the early reader test.
 
 The scene has four states: `initials` → `start` → `playing` → `over`. Cards
 (`ClimbCards.js`) get keys and taps through listeners that are removed on shutdown,
@@ -224,7 +224,7 @@ The WSL IP can change after a reboot; rerun the portproxy line if it stops worki
   the phone rotate hint match it.
 - Every scene calls `watchScreen(this)` and uses `PlayerInput`, so screen fitting and
   controls behave the same everywhere. On-screen words use `PencilWord` and must pass
-  the philosophy's "Jack test".
+  the philosophy's "early reader test".
 - Keep each file focused on one thing, and keep code readable for a learner:
   short functions, clear names, a comment wherever the "why" isn't obvious.
 - When behavior, controls, structure, or tuning defaults change, update the docs

@@ -9,7 +9,7 @@ Replace the single test level with the navigation idea from
 is a row of panels and each panel is a level. This first version has **one strip,
 "Getting Started", with one panel**: a short tutorial that teaches WALK and JUMP
 and tells a tiny story (a little guy is drawn, finds a sleeping dog, wakes it up).
-Jack (early reader) must be able to play all of it with no help.
+An early reader must be able to play all of it with no help.
 
 ## Decided with Ryan
 

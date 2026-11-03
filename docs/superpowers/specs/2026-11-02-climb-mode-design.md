@@ -53,7 +53,7 @@
 - **Touch steering.** No jump button. Touch and hold the **left or right half** of the
   screen to steer (big targets for small hands); two faint arrow buttons at the
   bottom corners show how.
-- **Words.** No new words. Numbers and icons only, per the Jack test.
+- **Words.** No new words. Numbers and icons only, per the early reader test.
 
 ## Tunables (`CLIMB` in `src/config.js`)
 
