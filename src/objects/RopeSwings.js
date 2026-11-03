@@ -21,15 +21,17 @@ const REGRAB_MS = 350; // after letting go, wait this long before grabbing again
 const HANG = 34; // from the rope's end (your hands) down to the middle of your body
 
 export class RopeSwings {
-  constructor() {
-    this.ropes = LAUNCH.ropes.map((x, i) => ({ x, y: LAUNCH.ropeTop, theta: i ? -0.3 : 0.3, omega: 0 }));
+  // Options let other levels (SWING) hang ropes elsewhere; the defaults are Launch's.
+  constructor({ ropes = LAUNCH.ropes, top = LAUNCH.ropeTop, length = LAUNCH.ropeLength } = {}) {
+    this.length = length;
+    this.ropes = ropes.map((x, i) => ({ x, y: top, theta: i ? -0.3 : 0.3, omega: 0 }));
     this.held = null; // the rope you're hanging on, if any
-    this.holdLength = LAUNCH.ropeLength; // how far down the rope your hands are
+    this.holdLength = length; // how far down the rope your hands are
     this.letGoAt = -Infinity;
   }
 
   // A point `length` px down a rope (its end, by default).
-  end(rope, length = LAUNCH.ropeLength) {
+  end(rope, length = this.length) {
     return { x: rope.x + Math.sin(rope.theta) * length, y: rope.y + Math.cos(rope.theta) * length };
   }
 
@@ -41,7 +43,7 @@ export class RopeSwings {
 
     for (const rope of this.ropes) {
       // A shorter pendulum swings faster: the one you hold swings from your hands.
-      const length = rope === this.held ? this.holdLength : LAUNCH.ropeLength;
+      const length = rope === this.held ? this.holdLength : this.length;
       let accel = -(PLAYER.gravity / length) * Math.sin(rope.theta);
       if (rope === this.held) {
         // Pumping: push the way you're already swinging (or start a swing).
@@ -78,7 +80,7 @@ export class RopeSwings {
         const near = Phaser.Math.Clamp(closestAlong(rope, e, hands), GRAB_FROM, 1);
         const point = { x: rope.x + (e.x - rope.x) * near, y: rope.y + (e.y - rope.y) * near };
         if (Math.hypot(hands.x - point.x, hands.y - point.y) < GRAB_RADIUS) {
-          this.grab(rope, player, Math.max(near, HOLD_FROM) * LAUNCH.ropeLength);
+          this.grab(rope, player, Math.max(near, HOLD_FROM) * this.length);
           event = 'grab';
           break;
         }
@@ -124,6 +126,11 @@ export class RopeSwings {
     drawTree(g, rng, from - 40, floorY, 380);
     drawTree(g, rng, to + 40, floorY, 380);
     drawBranch(g, rng, from - 40, to + 40, LAUNCH.ropeTop);
+    this.drawRopes(g, rng);
+  }
+
+  // Just the ropes, for levels that draw their own scenery.
+  drawRopes(g, rng) {
     for (const rope of this.ropes) {
       const e = this.end(rope);
       drawRope(g, rng, rope.x, rope.y, e.x, e.y);
