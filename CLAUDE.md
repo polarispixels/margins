@@ -6,6 +6,11 @@ A tiny browser platformer that lives on a sheet of lined notebook paper.
 - **Docs:** https://polarispixels.github.io/margins/docs/ (source: `public/docs/index.html`)
 - **Repo:** https://github.com/polarispixels/margins (deploys to GitHub Pages on push to `main`)
 
+**Read [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) before designing anything players will see.**
+It is the foundation of the look and feel: who the game is for (all ages, with Jack, an early
+reader, as the benchmark), "one big word at a time, right when it's needed," how levels teach,
+and what's deliberately out of scope for now.
+
 ## Concept
 
 - A stick figure walks and jumps around a page of notebook paper.
@@ -30,6 +35,7 @@ margins/
 ├── vite.config.js          # LAN dev server (host: true), relative base for GitHub Pages
 ├── package.json
 ├── README.md
+├── docs/PHILOSOPHY.md      # Who it's for, on-screen words, look & feel, scope. Read first.
 ├── public/docs/index.html  # The docs page; Vite copies public/ into dist/ as-is
 ├── .github/workflows/deploy.yml  # Build + deploy to GitHub Pages on push to main
 └── src/
@@ -98,4 +104,5 @@ The WSL IP can change after a reboot; rerun the portproxy line if it stops worki
   short functions, clear names, a comment wherever the "why" isn't obvious.
 - When behavior, controls, structure, or tuning defaults change, update the docs
   page (`public/docs/index.html`) and this file in the same commit.
-- MVP scope only. Don't add features (sound, scoring, multiple levels) unless asked.
+- Scope: build only what's been agreed. "Someday" ideas go in the "Not yet" list in
+  docs/PHILOSOPHY.md instead of into code.

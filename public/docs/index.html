@@ -96,6 +96,7 @@
 <nav class="toc">
   <strong>Contents</strong>
   <ol>
+    <li><a href="#philosophy">Philosophy</a></li>
     <li><a href="#concept">Concept</a></li>
     <li><a href="#controls">Controls</a></li>
     <li><a href="#running">Running it</a></li>
@@ -112,6 +113,19 @@
     <li><a href="#working">Working on Margins</a></li>
   </ol>
 </nav>
+
+<h2 id="philosophy">Philosophy</h2>
+<p>
+  Margins is for <strong>everyone</strong>, and our benchmark player is Jack, an early reader.
+  <strong>If it works for Jack, it works for everybody.</strong> On-screen instructions are
+  <strong>one big word at a time, right when it's needed</strong>: WALK, JUMP, HURRY, LOOK OUT!, DANGER.
+</p>
+<p>
+  The full philosophy (who it's for, words on screen, look and feel, how levels teach, and what's
+  deliberately saved for later) is the foundation for everything else. Read it before designing
+  anything players will see:
+  <a href="https://github.com/polarispixels/margins/blob/main/docs/PHILOSOPHY.md">docs/PHILOSOPHY.md</a>.
+</p>
 
 <h2 id="concept">Concept</h2>
 <p>
@@ -400,7 +414,8 @@ goal: { x: 860, line: 2 },</code></pre>
 
 <h2 id="working">Working on Margins</h2>
 <ul>
-  <li>It's an MVP on purpose. No sound, scoring, or extra levels unless they're asked for.</li>
+  <li>Read <a href="https://github.com/polarispixels/margins/blob/main/docs/PHILOSOPHY.md">docs/PHILOSOPHY.md</a> first, and run the "Jack test" on anything players will see.</li>
+  <li>Build only what's been agreed. "Someday" ideas go in the philosophy's "Not yet" list instead of into code.</li>
   <li>Keep magic numbers in <code>config.js</code>, and keep each file about one thing.</li>
   <li>The code is meant to be read by someone learning: short functions, clear names, and comments that explain <em>why</em>.</li>
   <li>Test on a phone in landscape. That's the main target.</li>

@@ -10,6 +10,8 @@ image assets: everything is drawn procedurally.
 - **Play:** https://polarispixels.github.io/margins/
 - **Developer & agent docs:** https://polarispixels.github.io/margins/docs/
   (concept, controls, architecture, how the boil works, tuning, deployment)
+- **Philosophy:** [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — who it's for, on-screen words,
+  look and feel. **Read this first.**
 - **Agent instructions:** [CLAUDE.md](CLAUDE.md)
 
 ## Controls
