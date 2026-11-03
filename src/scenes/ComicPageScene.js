@@ -61,7 +61,8 @@ export class ComicPageScene extends Phaser.Scene {
     this.buildWritings();
     this.buildPanels(data);
 
-    // One word at a time: WALK first, then JUMP under a panel, CLIMB at the ladder.
+    // One word at a time: WALK first, then CLIMB at the ladder. (No JUMP here: it
+    // crowded the panel art, and Getting Started already teaches jumping.)
     const firstFloor = layout.strips[0].floorY;
     this.walkWord = new PencilWord(this, 'WALK', START_X + 40, firstFloor - 52, 34, { written: false });
     this.climbWord = new PencilWord(this, 'CLIMB', this.ladder.x + 30, firstFloor - 58, 34, { written: false });
@@ -71,7 +72,6 @@ export class ComicPageScene extends Phaser.Scene {
     const from = data.returningFrom ? this.panels.find((p) => p.def.id === data.returningFrom) : null;
     const startX = from ? from.panel.centerX : START_X;
     const startFloor = from ? from.strip.floorY : firstFloor;
-    this.spawnX = startX;
     this.player = new StickFigure(this, startX, startFloor - 30);
     this.controls = new PlayerInput(this);
     this.physics.add.collider(this.player.zone, this.platforms.group, null, () => !this.player.climbing);
@@ -118,10 +118,7 @@ export class ComicPageScene extends Phaser.Scene {
           completed: open && isComplete(def.id) && !justFinished,
           best: def.id === CLIMB ? highScores(CLIMB)[0]?.score ?? 0 : 0,
         });
-        const jumpWord = open
-          ? new PencilWord(this, 'JUMP', panel.centerX, panel.y + 16, 32, { align: 'center', written: false })
-          : null;
-        this.panels.push({ def, strip, panel, justFinished, jumpWord });
+        this.panels.push({ def, strip, panel, justFinished });
       }
     }
   }
@@ -184,10 +181,8 @@ export class ComicPageScene extends Phaser.Scene {
     for (const p of this.panels) {
       const shown = near(p.panel.y, p.panel.height);
       p.panel.setVisible(shown);
-      p.jumpWord?.setVisible(shown);
       if (!shown) continue;
       p.panel.draw(time);
-      p.jumpWord?.draw(time);
     }
   }
 
@@ -235,23 +230,11 @@ export class ComicPageScene extends Phaser.Scene {
     } else if (!atLadder && this.climbWord.shown) {
       this.climbWord.fadeOut();
     }
-
-    // JUMP shows inside an open panel when he's standing under it.
-    for (const p of this.panels) {
-      // Not right at the start (WALK comes first; coming back, he's already under a panel).
-      if (!p.jumpWord || p.jumpWord.shown || this.walkWord.shown || Math.abs(x - this.spawnX) < 60) continue;
-      const under = x > p.panel.x && x < p.panel.x + p.panel.width;
-      const onItsFloor = body.bottom > p.panel.bottom && body.bottom <= p.strip.floorY + 4;
-      if (under && onItsFloor && !this.player.climbing) {
-        this.showOnly(p.jumpWord);
-        p.jumpWord.write(600);
-      }
-    }
   }
 
   // Fade every instruction word except `keep`, so there's only ever one on the page.
   showOnly(keep) {
-    const words = [this.walkWord, this.climbWord, ...this.panels.map((p) => p.jumpWord)];
+    const words = [this.walkWord, this.climbWord];
     for (const w of words) if (w && w !== keep && w.shown) w.fadeOut();
   }
 

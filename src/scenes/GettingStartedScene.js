@@ -116,7 +116,10 @@ export class GettingStartedScene extends Phaser.Scene {
     this.pencil.visible = this.floor.drawnTo < screenRight - 1;
 
     const drawn = this.floor.drawnTo;
-    if (drawn > JUMP_X - 10 && this.jumpWord.progress === 0) {
+    // Check `shown`, not `progress === 0`: a fresh tween leaves progress at 0 for a
+    // frame or two, and calling write() again every frame restarted it forever,
+    // so the letters stayed invisible while already being solid.
+    if (drawn > JUMP_X - 10 && !this.jumpWord.shown) {
       this.jumpWord.write(700);
     }
     if (drawn > DOG_X - 60 && !this.dog.graphics.visible) {

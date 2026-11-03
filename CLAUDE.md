@@ -23,8 +23,8 @@ and what's deliberately out of scope for now.
   The page is the world map, strips are worlds, panels are levels. Walk along a strip's
   floor line and jump up into a panel to play its level. A **ladder in the margin**
   joins every floor: touch it and press Up or Down to climb, Left or Right to step off.
-  The word CLIMB is written beside the ladder the first time he reaches it; JUMP appears
-  under an open panel once he has walked away from his spawn. Bumping a panel only counts
+  The word CLIMB is written beside the ladder the first time he reaches it (no JUMP word
+  on this page: it crowded the panel art, and Getting Started teaches jumping). Bumping a panel only counts
   on the strip he's standing on. Strips are data in `src/data/strips.js`; locked panels
   (a word and a faint picture) and empty slots mean "more coming". Panel words and strip
   titles are labels, not instructions.
