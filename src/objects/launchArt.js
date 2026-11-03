@@ -46,11 +46,12 @@ export function drawLog(g, rng, x, groundY, width, height) {
 
 // ---- The UFO ----
 
-// A flying saucer at (x, y) with an alien in its glass dome. `warning` (0..1)
-// draws rays underneath before it drops goo.
-export function drawUfo(g, rng, x, y, time, warning = 0) {
+// A flying saucer at (x, y) with an alien in its glass dome (`pilot`; false
+// while the alien is out chasing you). `warning` (0..1) draws rays underneath
+// before it drops goo.
+export function drawUfo(g, rng, x, y, time, warning = 0, pilot = true) {
   // The alien first, so the dome's outline goes over it.
-  drawAlien(g, rng, x, y - 14, time);
+  if (pilot) drawPilot(g, rng, x, y - 14, time);
   pencilEllipse(g, rng, x, y - 10, 24, 20, { ...PENCIL, points: 16 }); // the dome
   g.fillStyle(COLORS.paper, 1);
   g.fillEllipse(x, y + 2, 112, 26); // the saucer hides the dome's lower half
@@ -67,19 +68,21 @@ export function drawUfo(g, rng, x, y, time, warning = 0) {
   }
 }
 
-// The alien: a round head with big eyes and two antennae with bobbles.
-function drawAlien(g, rng, x, y, time) {
+// The alien in the dome: just its head, peeking out (chaseArt.js draws it on foot).
+function drawPilot(g, rng, x, y, time) {
   const style = { ...PENCIL, width: 2 };
   pencilCircle(g, rng, x, y, 9, { ...style, points: 10 });
-  const wiggle = Math.sin(time / 200) * 2;
-  pencilLine(g, rng, x - 4, y - 8, x - 8 + wiggle, y - 17, style);
-  pencilLine(g, rng, x + 4, y - 8, x + 8 + wiggle, y - 17, style);
-  pencilCircle(g, rng, x - 8 + wiggle, y - 18, 2, { ...style, points: 6, passes: 1 });
-  pencilCircle(g, rng, x + 8 + wiggle, y - 18, 2, { ...style, points: 6, passes: 1 });
-  for (const ex of [-3.5, 3.5]) {
-    g.fillStyle(COLORS.pencil, 1);
-    g.fillEllipse(x + ex, y - 1, 4, 6);
-  }
+  // Three wobbly antennae with bobbles.
+  [-1, 0, 1].forEach((lean, i) => {
+    const wiggle = Math.sin(time / 150 + i * 2) * 2;
+    const tipX = x + lean * 8 + wiggle;
+    pencilLine(g, rng, x + lean * 4, y - 8, tipX, y - 17, style);
+    pencilCircle(g, rng, tipX, y - 18, 2, { ...style, points: 6, passes: 1 });
+  });
+  // One big eye.
+  pencilCircle(g, rng, x, y - 1, 4, { ...style, width: 1.5, points: 8, passes: 1 });
+  g.fillStyle(COLORS.pencil, 1);
+  g.fillCircle(x + 1, y - 0.5, 1.8);
 }
 
 // A glob of glowing goo falling from the UFO.

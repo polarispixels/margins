@@ -54,6 +54,17 @@ export function fadeOutToPaper(scene, then, durationMs = 400) {
   scene.cameras.main.once('camerafadeoutcomplete', then);
 }
 
+// Fade to blank paper, call `middle` (e.g. to move things while nobody can see),
+// then fade back in. Used when Launch puts you back at a checkpoint.
+export function fadeThroughPaper(scene, middle, durationMs = 250) {
+  const cam = scene.cameras.main;
+  cam.fadeOut(durationMs, ...rgb(COLORS.paper));
+  cam.once('camerafadeoutcomplete', () => {
+    middle();
+    cam.fadeIn(durationMs, ...rgb(COLORS.paper));
+  });
+}
+
 // Split a 0xRRGGBB color into [r, g, b], which the camera fade functions want.
 function rgb(color) {
   return [(color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff];

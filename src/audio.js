@@ -7,7 +7,8 @@
 // Everything goes through one `master` gain node, so muting is a single switch.
 // The mute setting is remembered in localStorage.
 //
-//   sfx.jump(), sfx.pickup(), sfx.launch(), sfx.fireball(), sfx.hit(), sfx.fanfare()
+//   sfx.jump(), sfx.pickup(), sfx.launch(), sfx.fireball(), sfx.hit(), sfx.fanfare(),
+//   plus the forest, chase, and puzzle sounds (splash, chomp, zap, ding, buzz, ...)
 //   const music = new Music(); music.start(); music.setIntensity(1); music.stop();
 
 import { LAUNCH } from './config.js';
@@ -125,6 +126,33 @@ export const sfx = {
   },
   fireball: () => noise({ length: 0.8, volume: 0.35, filter: 'bandpass', from: 2400, to: 300 }),
   hit: () => tone({ type: 'square', from: 180, to: 60, length: 0.25, volume: 0.15 }),
+  splash: () => noise({ length: 0.6, volume: 0.4, filter: 'lowpass', from: 2500, to: 300 }),
+  chomp: () => {
+    tone({ type: 'square', from: 220, to: 90, length: 0.12, volume: 0.15 });
+    tone({ type: 'square', from: 200, to: 80, start: 0.14, length: 0.12, volume: 0.15 });
+  },
+  fall: () => tone({ type: 'triangle', from: 700, to: 120, length: 0.6, volume: 0.2 }),
+  zap: () => tone({ type: 'sawtooth', from: 1400, to: 300, length: 0.18, volume: 0.07 }),
+  crash: () => {
+    noise({ length: 0.5, volume: 0.4, from: 600, to: 100 });
+    tone({ type: 'triangle', from: 90, to: 50, length: 0.4, volume: 0.25 });
+  },
+  bump: () => tone({ type: 'square', from: 300, to: 200, length: 0.08, volume: 0.08 }),
+  beam: () => tone({ type: 'sine', from: 200, to: 600, length: 0.7, volume: 0.15 }),
+  tug: () => tone({ type: 'square', from: 500, to: 350, length: 0.06, volume: 0.07 }),
+  free: () => tone({ type: 'triangle', from: 400, to: 1200, length: 0.25, volume: 0.2 }),
+  grab: () => tone({ type: 'triangle', from: 250, to: 330, length: 0.08, volume: 0.12 }),
+  flutter: () => {
+    for (let i = 0; i < 5; i++) noise({ start: i * 0.05, length: 0.04, volume: 0.12, filter: 'bandpass', from: 3000 });
+  },
+  checkpoint: () => {
+    tone({ note: 72, length: 0.12, volume: 0.15 });
+    tone({ note: 79, start: 0.1, length: 0.2, volume: 0.15 });
+  },
+  // A correct switch: higher with each one (step 1, 2, 3).
+  ding: (step) => tone({ note: 72 + step * 4, length: 0.3, volume: 0.2 }),
+  buzz: () => tone({ type: 'sawtooth', from: 110, to: 90, length: 0.45, volume: 0.15 }),
+  unlock: () => [72, 76, 79, 84].forEach((note, i) => tone({ note, start: i * 0.1, length: 0.35, volume: 0.18 })),
   fanfare: () => {
     [60, 64, 67, 72, 76, 79, 84].forEach((note, i) => tone({ note, start: i * 0.09, length: 0.3, volume: 0.18 }));
     tone({ note: 84, start: 0.7, length: 0.9, volume: 0.2 });

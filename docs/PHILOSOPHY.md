@@ -69,10 +69,11 @@ kindergarten or first-grade sight-word list.
   wall, a coffee ring is the goal. New mechanics should come from things you'd
   really find on or near a notebook page (erasers, pens, highlighters, doodles,
   folds, smudges).
-- **Pencil gray is the default. Color is special.** *(Our proposal, not yet
-  confirmed.)* Color arrives with new drawing tools later (red and blue ballpoint
-  pens, markers, highlighters), so when something has color, it should mean
-  something.
+- **Pencil gray is the default. Color is special.** When something has color, it
+  should mean something. Fire gets a warm fill. Colored pencil (red, blue, green,
+  drawn as a colored outline with hatching) arrives in Launch's rocket puzzle,
+  where the colors are the thing you read. More drawing tools (ballpoint pens,
+  markers, highlighters) can bring color later.
 
 ## How levels teach
 
@@ -117,8 +118,8 @@ Great ideas we're deliberately saving for later, so we don't build ahead of
 ourselves:
 
 - The stick figure gets a pencil and writes letters
-- Puzzles and mazes
-- Enemies
+- Mazes, and more puzzles beyond Launch's colored switches
+- More enemies beyond Launch's UFO and alien
 - Red and blue ballpoint pens, colored markers, highlighters
 - Vertical levels (climbing up or down the page), not just side-to-side ones
 - Obstacles and challenges beyond the tutorials, and more advanced controls

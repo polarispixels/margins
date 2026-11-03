@@ -1,14 +1,18 @@
-// Launch: a side-scrolling story level.
+// Launch: a long side-scrolling story level.
 //
-// The stick figure runs right through a forest, is chased by an alien in a UFO,
-// reaches a rocket and flies the final stretch, and arrives at a city just as a
-// fireball streaks down. The fireball chases the rocket: it aims (a dashed line
-// shows its lane) and lunges, and you steer out of the way. At the city it bursts
-// into fireworks instead, and that's the celebration.
+// The stick figure runs right through a forest (squirrels, birds, rope swings
+// over a ravine, a river crossing), is chased by a UFO (falling trees, a
+// searchlight tractor beam, then the alien on foot), solves a colored-switch
+// puzzle at the rocket pad, and flies the final stretch to a city while a
+// fireball chases the rocket. At the city it bursts into fireworks instead.
 //
-// Phases: 'run' → 'launching' (countdown and lift-off) → 'flying' → 'landing' → 'done'.
-// Getting hit (UFO goo, the fireball) only stuns for a moment; there's no game over.
-// Positions and timings are in LAUNCH (config.js); layout details are here.
+// Phases: 'run' → 'launching' (countdown and lift-off) → 'flying' → 'landing' → 'done',
+// plus 'oops' (a short pause after falling in or getting caught, before going
+// back to the last checkpoint flag). Zaps, goo, and the fireball only stun.
+//
+// Each section lives in its own object (Critters, RopeSwings, River, Chase,
+// LaunchPuzzle); this scene wires them together, and handles checkpoints, the
+// camera, stars, the rocket, and the ending. Tunables are in LAUNCH (config.js).
 
 import Phaser from 'phaser';
 import { LAUNCH, PAPER, HEIGHT, COLORS } from '../config.js';
@@ -17,13 +21,19 @@ import { lineY } from '../objects/Paper.js';
 import { Platforms } from '../objects/Platforms.js';
 import { StickFigure } from '../objects/StickFigure.js';
 import { PencilWord } from '../objects/PencilWord.js';
+import { Critters } from '../objects/Critters.js';
+import { RopeSwings } from '../objects/RopeSwings.js';
+import { River } from '../objects/River.js';
+import { Chase } from '../objects/Chase.js';
+import { LaunchPuzzle, puzzleLedges, FENCE_WIDTH } from '../objects/LaunchPuzzle.js';
 import { drawStar } from '../objects/climbArt.js';
 import {
-  drawTree, drawCloud, drawLog, drawUfo, drawGoo, drawGooSplat, drawRocket, drawSmoke,
+  drawTree, drawCloud, drawLog, drawRocket, drawSmoke,
   drawLaunchPad, drawFireball, drawAimLine, drawCity, drawFirework,
 } from '../objects/launchArt.js';
+import { drawRavine, drawSplash, drawFlag } from '../objects/forestArt.js';
 import { PlayerInput } from '../input.js';
-import { useLayout, LANDSCAPE, watchScreen, fadeInFromPaper, fadeOutToPaper } from '../screen.js';
+import { useLayout, LANDSCAPE, watchScreen, fadeInFromPaper, fadeOutToPaper, fadeThroughPaper } from '../screen.js';
 import { markComplete } from '../progress.js';
 import { Music, sfx, isMuted, toggleMute } from '../audio.js';
 import { boilRng, pencilLine, pencilPolyline, pencilCircle } from '../pencil.js';
@@ -31,21 +41,29 @@ import { boilRng, pencilLine, pencilPolyline, pencilCircle } from '../pencil.js'
 export const PANEL_ID = 'launch';
 
 const FLOOR_LINE = 12;
-const START_X = 170;
 const CAMERA_LEAD = 0.35; // keep the figure (or rocket) this far across the screen
-const LOGS = [700, 1150, 1650, 2250, 2950]; // left edges of the logs to jump over
 const LOG_WIDTH = 70;
 const LOG_HEIGHT = 30;
-// Stars: [x, y]. Some above logs, a trail along the forest, and arcs in the sky.
+// Stars: [x, y]. Trails through the forest, over the ravine and river, along the
+// chase, on the gantry, and arcs in the sky.
 const STARS = [
-  [450, 450], [735, 400], [1000, 450], [1185, 400], [1400, 450], [1685, 400], [2000, 450], [2285, 400],
-  [3950, 260], [4050, 220], [4150, 200], [4250, 220], [4350, 260],
-  [4600, 380], [4700, 400], [4800, 380], [4950, 160], [5050, 140],
+  [450, 450], [685, 400], [900, 450], [1135, 400], [1300, 450],
+  [1520, 380], [1635, 330], [1745, 380],
+  [2185, 400], [2500, 440], [2630, 440], [2840, 400], [3080, 440], [3260, 400], [3520, 440],
+  [4100, 450], [4400, 450], [5000, 450], [5300, 450], [5700, 450], [6250, 450], [6635, 400], [7385, 400],
+  [8305, 300], [8520, 440],
+  [8550, 260], [8650, 220], [8750, 200], [8850, 220], [8950, 260],
+  [9200, 380], [9300, 400], [9400, 380], [9550, 160], [9650, 140],
+  [10100, 300], [10200, 260], [10300, 300], [10700, 150], [10800, 120], [11200, 400], [11300, 420], [11700, 300], [11800, 260], [11900, 300],
 ];
+const FALL_DEPTH = 24; // falling this far below the floor line means you fell in
+const OOPS_MS = 650; // the pause after falling in, before going back to the flag
+const SAFE_MS = 1200; // blinking and safe after coming back
 const PAD_TOP_OFFSET = 8; // the launch pad's deck is this far above the ground
 const ROCKET_TAIL = 61; // distance from the rocket's center to the bottom of its nozzle
 const MUTE_RADIUS = 22;
 const CELEBRATE_MS = 5500; // how long the ending plays before going back to the comic page
+const NO_INPUT = { left: false, right: false, jump: false, jumpHeld: false, up: false, down: false };
 
 export class LaunchScene extends Phaser.Scene {
   constructor() {
@@ -58,35 +76,54 @@ export class LaunchScene extends Phaser.Scene {
     this.phase = 'run';
     this.stars = 0;
     this.stunUntil = 0;
+    this.safeUntil = 0;
     this.floorY = lineY(FLOOR_LINE);
     const floorY = this.floorY;
+    this.checkpoint = 0; // index into LAUNCH.checkpoints: where you come back to
+    this.flagRaisedAt = LAUNCH.checkpoints.map((_, i) => (i === 0 ? -Infinity : null));
 
     // Back to front: the long sheet of paper, two rows of trees and clouds
-    // scrolling slower than the camera (parallax), then the ground and objects.
+    // scrolling slower than the camera (parallax), things behind the figure,
+    // the ground, the figure, then things in front.
     this.paper = new LongPaper(this);
     this.farLayer = this.add.graphics().setScrollFactor(LAUNCH.parallaxFar, 1).setDepth(-15);
     this.nearLayer = this.add.graphics().setScrollFactor(LAUNCH.parallaxNear, 1).setDepth(-14);
+    this.backGraphics = this.add.graphics().setDepth(-1);
+    const { ravine, river } = LAUNCH;
     this.platforms = new Platforms(this, [
-      { line: FLOOR_LINE, from: PAPER.marginX, to: LAUNCH.rocketX + 200 }, // forest floor to the pad
+      { line: FLOOR_LINE, from: PAPER.marginX, to: ravine.from },
+      { line: FLOOR_LINE, from: ravine.to, to: river.from },
+      { line: FLOOR_LINE, from: river.to, to: LAUNCH.padWall + 60 }, // the chase and the pad
       { line: FLOOR_LINE, from: LAUNCH.cityX - 100, to: LAUNCH.length }, // the city's street
+      ...puzzleLedges(),
     ]);
-    for (const x of LOGS) this.platforms.addSolid(x, floorY - LOG_HEIGHT, LOG_WIDTH, LOG_HEIGHT);
+    this.logs = LAUNCH.logs.map((x) => ({ from: x, to: x + LOG_WIDTH, top: floorY - LOG_HEIGHT }));
+    for (const x of LAUNCH.logs) this.platforms.addSolid(x, floorY - LOG_HEIGHT, LOG_WIDTH, LOG_HEIGHT);
+    this.platforms.addSolid(LAUNCH.padWall, floorY - 600, FENCE_WIDTH, 600); // the fence at the end of the pad
+
+    this.critters = new Critters(floorY);
+    this.ropes = new RopeSwings();
+    this.river = new River(this, floorY);
+    this.chase = new Chase(this, floorY, this.platforms);
+    this.puzzle = new LaunchPuzzle(floorY, this.platforms);
     this.worldGraphics = this.add.graphics().setDepth(1);
 
     this.starItems = STARS.map(([x, y]) => ({ x, y, taken: false }));
-    this.ufo = { active: false, gone: false, x: 0, y: 0, nextDrop: 0, warnStart: null };
-    this.goos = []; // { x, y, vy, splatAt }
     this.rocket = { x: LAUNCH.rocketX, y: floorY - PAD_TOP_OFFSET - ROCKET_TAIL, angle: 0, vy: 0, flame: 0, face: false, shake: 0 };
     this.smoke = []; // { x, y, born }
+    this.splashes = []; // { x, y, born }
     this.fireball = { state: 'waiting', lunges: 0, tail: { x: -1, y: 0 } };
     this.fireworks = []; // { x, y, born }
 
-    this.player = new StickFigure(this, START_X, floorY - 30);
+    this.player = new StickFigure(this, LAUNCH.startX, floorY - 30);
     this.controls = new PlayerInput(this);
     this.physics.add.collider(this.player.zone, this.platforms.group);
+    this.physics.add.collider(this.player.zone, this.river.group, (_, part) => {
+      if (this.player.body.touching.down) this.river.landed(part, this.time.now);
+    });
 
     // Words: WALK in the world at the start; messages and the countdown pinned to the screen.
-    this.walkWord = new PencilWord(this, 'WALK', START_X - 40, floorY - 150, 40, { written: false });
+    this.walkWord = new PencilWord(this, 'WALK', LAUNCH.startX - 40, floorY - 150, 40, { written: false });
     this.walkWord.write(900);
     this.message = new PencilWord(this, 'GO!', 0, 60, 46, { align: 'center', fixed: true, written: false, depth: 25, lineWidth: 4 });
     this.bigWord = new PencilWord(this, 'GO!', 0, 120, 90, { align: 'center', fixed: true, written: false, depth: 25, lineWidth: 6 });
@@ -127,6 +164,11 @@ export class LaunchScene extends Phaser.Scene {
     return this.scale.width - 40;
   }
 
+  // Where the camera wants to be to keep x a third of the way across the screen.
+  cameraTarget(x) {
+    return Phaser.Math.Clamp(x - this.scale.width * CAMERA_LEAD, 0, LAUNCH.length - this.scale.width);
+  }
+
   // Write a message near the top of the screen, then fade it (one word at a time).
   say(word, text, holdMs = 1500) {
     if (this.walkWord.shown) this.walkWord.fadeOut();
@@ -143,100 +185,149 @@ export class LaunchScene extends Phaser.Scene {
     const input = this.controls.read();
 
     if (this.phase === 'run') this.updateRun(time, dt, input);
-    else if (this.phase === 'launching') this.updateLaunching(time, dt);
+    else if (this.phase === 'launching') this.updateLaunching(time);
     else if (this.phase === 'flying') this.updateFlying(time, dt, input);
     else if (this.phase === 'landing') this.updateLanding(time);
-    else this.updateDone(time, dt);
+    else if (this.phase === 'done') this.updateDone(time, dt);
 
-    this.updateUfo(time, dt);
-    this.updateGoo(time, dt);
+    this.river.update(time, this.player);
+    if (this.phase !== 'run' && this.phase !== 'oops') this.chase.update(time, dt, this.player, NO_INPUT, false, this.logs);
     this.collectStars();
 
     // The camera eases along to keep the figure (or the rocket) a third of the way across.
     const cam = this.cameras.main;
-    const followX = this.phase === 'run' || this.phase === 'done' ? this.player.body.center.x : this.rocket.x;
-    const want = Phaser.Math.Clamp(followX - this.scale.width * CAMERA_LEAD, 0, LAUNCH.length - this.scale.width);
+    const inRocket = this.phase === 'launching' || this.phase === 'flying' || this.phase === 'landing';
+    const want = this.cameraTarget(inRocket ? this.rocket.x : this.player.body.center.x);
     cam.scrollX += (want - cam.scrollX) * Math.min(1, dt * 6);
 
     this.draw(time);
   }
 
-  // ---- Running through the forest ----
+  // ---- On foot: the forest, the river, the chase, and the pad ----
 
   updateRun(time, dt, input) {
-    const body = this.player.body;
+    const player = this.player;
+    const body = player.body;
     const stunned = time < this.stunUntil;
-    this.player.update(stunned ? { left: false, right: false, jump: false, jumpHeld: false } : input, dt);
-    if (this.player.jumped) sfx.jump();
-    this.player.graphics.setAlpha(stunned && Math.floor(time / 80) % 2 === 0 ? 0.3 : 1);
+    const held = stunned ? NO_INPUT : input;
+    const canBeHit = !stunned && time >= this.safeUntil;
 
-    if (this.walkWord.shown && body.center.x > START_X + 80) this.walkWord.fadeOut();
+    const rope = this.ropes.update(time, dt, player, held);
+    if (rope === 'grab') sfx.grab();
+    if (rope === 'release') sfx.jump();
 
-    // Reached the rocket: climb in and start the countdown.
-    if (body.center.x >= this.rocket.x - 30 && this.player.onFloor) this.startLaunch(time);
+    for (const event of this.chase.update(time, dt, player, held, canBeHit, this.logs)) this.onChaseEvent(event, time);
+    if (this.phase !== 'run') return; // the chase ended the attempt
+
+    if (!this.ropes.holding && !this.chase.capturing) {
+      player.update(held, dt);
+      if (player.jumped) sfx.jump();
+    }
+    const blinking = stunned || time < this.safeUntil;
+    player.graphics.setAlpha(blinking && Math.floor(time / 80) % 2 === 0 ? 0.3 : 1);
+    if (this.walkWord.shown && body.center.x > LAUNCH.startX + 80) this.walkWord.fadeOut();
+
+    this.passCheckpoints(time);
+    if (this.critters.update(dt, body.center.x)) sfx.flutter();
+
+    // Falling in: the ravine or the river.
+    const hazard = this.river.hazard(time, body);
+    if (hazard) return this.fail(time, hazard);
+    if (body.bottom > this.floorY + FALL_DEPTH) return this.fail(time, this.river.contains(body.center.x) ? 'splash' : 'fall');
+
+    // The puzzle, and climbing into the rocket once it's solved.
+    const press = this.puzzle.update(time, player);
+    if (press === 'right') sfx.ding(this.puzzle.done);
+    else if (press === 'wrong') sfx.buzz();
+    else if (press === 'solved') {
+      sfx.ding(3);
+      this.time.delayedCall(300, () => sfx.unlock());
+    }
+    if (this.puzzle.solved && player.onFloor && Math.abs(body.center.x - this.rocket.x) < 30 && body.bottom > this.floorY - 4) {
+      this.startLaunch(time);
+    }
   }
 
-  // ---- The UFO ----
-
-  updateUfo(time, dt) {
-    const ufo = this.ufo;
-    if (ufo.gone) return;
-    const px = this.player.body.center.x;
-    if (!ufo.active) {
-      if (this.phase !== 'run' || px < LAUNCH.ufoStart) return;
-      // It swoops in from behind.
-      Object.assign(ufo, { active: true, x: px - 500, y: LAUNCH.ufoHeight - 200, nextDrop: time + 1500 });
+  onChaseEvent(event, time) {
+    const body = this.player.body;
+    if (event === 'arrive') {
       this.say(this.message, 'HURRY!');
       this.music.setIntensity(1);
+    } else if (event === 'alien') {
+      this.say(this.message, 'LOOK OUT!');
+    } else if (event === 'captured') {
+      this.say(this.message, 'JUMP');
+      sfx.beam();
+    } else if (event === 'zap' || event === 'bump' || event === 'crash' || event === 'tug' || event === 'free') {
+      sfx[event]();
+    } else if (event === 'hit' || event === 'goo') {
+      this.stun(time);
+      body.setVelocity(-LAUNCH.zapKnockback, -260); // knocked back
+    } else if (event === 'pulled' || event === 'caught') {
+      this.fail(time, event);
     }
-
-    if (this.phase !== 'run' || px > LAUNCH.ufoEnd) {
-      // Zoom away up and to the right.
-      ufo.x += 420 * dt;
-      ufo.y -= 380 * dt;
-      ufo.warnStart = null;
-      if (ufo.y < HEIGHT - this.scale.height - 120) ufo.gone = true;
-      return;
-    }
-
-    // Hover over the figure, a little ahead, bobbing.
-    ufo.x += (px + 40 - ufo.x) * Math.min(1, dt * 1.5);
-    ufo.y += (LAUNCH.ufoHeight + Math.sin(time / 400) * 10 - ufo.y) * Math.min(1, dt * 2);
-
-    // Drop goo: first a warning (rays under the saucer), then the drop.
-    if (time > ufo.nextDrop) {
-      ufo.warnStart ??= time;
-      if (time - ufo.warnStart > LAUNCH.ufoWarning * 1000) {
-        this.goos.push({ x: ufo.x, y: ufo.y + 18, vy: 60, splatAt: null });
-        ufo.warnStart = null;
-        ufo.nextDrop = time + LAUNCH.ufoDropEvery * 1000;
-      }
-    }
-  }
-
-  updateGoo(time, dt) {
-    const body = this.player.body;
-    for (const goo of this.goos) {
-      if (goo.splatAt !== null) continue;
-      goo.vy += LAUNCH.gooGravity * dt;
-      goo.y += goo.vy * dt;
-      if (goo.y >= this.floorY - 8) {
-        goo.y = this.floorY;
-        goo.splatAt = time;
-      } else if (this.phase === 'run' && time >= this.stunUntil &&
-        goo.x > body.left - 8 && goo.x < body.right + 8 && goo.y > body.top - 8 && goo.y < body.bottom) {
-        goo.splatAt = time;
-        goo.y = this.floorY;
-        this.stun(time);
-        body.setVelocity(-220, -280); // knocked back
-      }
-    }
-    this.goos = this.goos.filter((g) => g.splatAt === null || time - g.splatAt < 700);
   }
 
   stun(time) {
     this.stunUntil = time + LAUNCH.stunSeconds * 1000;
     sfx.hit();
+  }
+
+  // Raise each flag as you pass it; the last one you passed is where you come back.
+  passCheckpoints(time) {
+    const x = this.player.body.center.x;
+    LAUNCH.checkpoints.forEach((cx, i) => {
+      if (i > this.checkpoint && x > cx) {
+        this.checkpoint = i;
+        this.flagRaisedAt[i] = time;
+        sfx.checkpoint();
+      }
+    });
+  }
+
+  // ---- Falling in, getting caught, and coming back ----
+
+  // `kind`: 'splash' (water, the fish), 'chomp' (the alligator), 'fall' (the
+  // ravine), 'pulled' (into the UFO), 'caught' (by the alien).
+  fail(time, kind) {
+    if (this.phase !== 'run') return;
+    this.phase = 'oops';
+    const player = this.player;
+    const body = player.body;
+    this.ropes.letGo(player);
+    this.chase.release(player);
+    if (kind === 'splash' || kind === 'chomp') {
+      this.splashes.push({ x: body.center.x, y: this.river.surfaceY, born: time });
+      sfx.splash();
+      if (kind === 'chomp') sfx.chomp();
+    } else if (kind === 'fall') {
+      sfx.fall();
+    } else {
+      sfx.hit();
+      if (kind === 'pulled') player.graphics.setVisible(false); // into the saucer
+    }
+    // Hold still (half under water, or wherever you are) for a moment.
+    body.setAllowGravity(false);
+    body.setVelocity(0, 0);
+    this.time.delayedCall(OOPS_MS, () => fadeThroughPaper(this, () => this.respawn()));
+  }
+
+  respawn() {
+    const x = LAUNCH.checkpoints[this.checkpoint];
+    const body = this.player.body;
+    body.setAllowGravity(true);
+    body.reset(x, this.floorY - 30);
+    this.player.graphics.setVisible(true);
+    this.player.facing = 1;
+    this.river.reset();
+    if (x < LAUNCH.padArea) {
+      this.chase.reset();
+      this.music.setIntensity(0);
+    }
+    this.cameras.main.scrollX = this.cameraTarget(x);
+    this.stunUntil = 0;
+    this.safeUntil = this.time.now + SAFE_MS;
+    this.phase = 'run';
   }
 
   // ---- The rocket ----
@@ -247,6 +338,7 @@ export class LaunchScene extends Phaser.Scene {
     this.player.graphics.setVisible(false); // he climbs in...
     this.player.body.enable = false;
     this.rocket.face = true; // ...and looks out of the porthole
+    this.chase.leave(); // the UFO gives up
     this.controls.touch.setLayout('none');
     const step = LAUNCH.countdownStep * 1000;
     ['3', '2', '1'].forEach((n, i) => this.time.delayedCall(i * step, () => this.say(this.bigWord, n, step * 0.8)));
@@ -471,32 +563,54 @@ export class LaunchScene extends Phaser.Scene {
     this.drawBackground(time);
     this.platforms.draw(time);
 
+    // Behind the figure: trees, critters, the ravine and ropes, river things,
+    // flags, the puzzle, and the launch pad.
+    const b = this.backGraphics;
+    b.clear();
+    const backRng = boilRng(time, 905);
+    this.critters.draw(b, backRng, visible);
+    const { ravine } = LAUNCH;
+    if (visible(ravine.from, 700)) {
+      drawRavine(b, backRng, ravine.from, ravine.to, floorY, HEIGHT);
+      this.ropes.draw(b, backRng, floorY);
+    }
+    if (visible(LAUNCH.river.from, 1300)) this.river.drawBack(b, backRng, time);
+    this.chase.drawBack(b, backRng, visible);
+    LAUNCH.checkpoints.forEach((x, i) => {
+      if (i === 0 || !visible(x)) return;
+      const at = this.flagRaisedAt[i];
+      drawFlag(b, backRng, x, floorY, at === null ? 0 : Math.min(1, (time - at) / 500));
+    });
+    if (visible(LAUNCH.rocketX, 900)) {
+      this.puzzle.draw(b, backRng, time);
+      drawLaunchPad(b, backRng, LAUNCH.rocketX, floorY);
+    }
+
+    // In front of the figure.
     const g = this.worldGraphics;
     g.clear();
-    for (const x of LOGS) if (visible(x)) drawLog(g, rng, x, floorY, LOG_WIDTH, LOG_HEIGHT);
-    if (visible(LAUNCH.rocketX)) drawLaunchPad(g, rng, LAUNCH.rocketX, floorY);
+    for (const x of LAUNCH.logs) if (visible(x)) drawLog(g, rng, x, floorY, LOG_WIDTH, LOG_HEIGHT);
+    if (visible(LAUNCH.river.from, 1300)) this.river.drawFront(g, rng, time);
+    this.splashes = this.splashes.filter((s) => time - s.born < 600);
+    for (const s of this.splashes) drawSplash(g, rng, s.x, s.y, (time - s.born) / 600);
     if (visible(LAUNCH.cityX, 900)) drawCity(g, rng, LAUNCH.cityX, floorY);
     for (const star of this.starItems) {
       if (!star.taken && visible(star.x)) drawStar(g, rng, star.x, star.y + Math.sin(time / 300 + star.x) * 3, 11);
-    }
-    for (const goo of this.goos) {
-      if (goo.splatAt === null) drawGoo(g, rng, goo.x, goo.y);
-      else drawGooSplat(g, rng, goo.x, floorY, (time - goo.splatAt) / 700);
     }
     this.smoke = this.smoke.filter((s) => time - s.born < 1400);
     for (const s of this.smoke) drawSmoke(g, rng, s.x, s.y - (time - s.born) * 0.03, (time - s.born) / 1400);
 
     const r = this.rocket;
-    const shakeX = r.shake ? (Math.random() - 0.5) * r.shake * 2 : 0;
-    drawRocket(g, rng, r.x + shakeX, r.y, r.angle, { flame: r.flame, face: r.face, time });
+    if (visible(r.x)) {
+      const shakeX = r.shake ? (Math.random() - 0.5) * r.shake * 2 : 0;
+      drawRocket(g, rng, r.x + shakeX, r.y, r.angle, { flame: r.flame, face: r.face, time });
+      if (this.phase === 'run') this.puzzle.drawReadyLight(g, rng, r.x, r.y - 62, time);
+    }
 
     this.drawFireball(g, rng, time);
     this.fireworks = this.fireworks.filter((f) => time - f.born < 1200);
     for (const fw of this.fireworks) drawFirework(g, rng, fw.x, fw.y, (time - fw.born) / 1200);
-    if (this.ufo.active && !this.ufo.gone) {
-      const warn = this.ufo.warnStart === null ? 0 : (time - this.ufo.warnStart) / (LAUNCH.ufoWarning * 1000);
-      drawUfo(g, rng, this.ufo.x, this.ufo.y, time, Math.min(1, warn));
-    }
+    this.chase.drawFront(g, rng, time, this.player.body.center.x, cam.scrollY);
 
     this.walkWord.draw(time);
     this.player.draw(time);
@@ -519,9 +633,9 @@ export class LaunchScene extends Phaser.Scene {
     drawFireball(g, rng, f.x, f.y, LAUNCH.fireballRadius, f.tail.x, f.tail.y, time);
   }
 
-  // Trees (two rows, for parallax) along the forest, then clouds over the rest.
-  // These graphics scroll slower than the camera, so they're drawn in their own
-  // coordinates: a layer with factor f sees camera.scrollX * f at its left edge.
+  // Trees (two rows, for parallax) along the forest and the chase, then clouds
+  // over the rest. These graphics scroll slower than the camera, so they're drawn
+  // in their own coordinates: a layer with factor f sees camera.scrollX * f at its left edge.
   drawBackground(time) {
     const cam = this.cameras.main;
     const layers = [
@@ -533,7 +647,7 @@ export class LaunchScene extends Phaser.Scene {
       const rng = boilRng(time, 950 + seed);
       const left = cam.scrollX * f - 100;
       const right = left + this.scale.width + 200;
-      const forestEnd = LAUNCH.forestEnd * f + this.scale.width * 0.5;
+      const forestEnd = LAUNCH.padArea * f + this.scale.width * 0.5;
       for (let i = Math.max(0, Math.floor(left / spacing)); i * spacing < right; i++) {
         const x = i * spacing + (hash(i * seed) - 0.5) * spacing * 0.5;
         if (x < forestEnd) {

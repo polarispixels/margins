@@ -140,8 +140,9 @@
   of panels with a title, and each panel is a level. The stick figure walks along the bottom line and
   <strong>jumps up into a panel</strong> to play it. The first strip, <em>Getting Started</em>, has one panel:
   a tutorial where the page draws itself as you walk, the word JUMP is the obstacle, and a sleeping dog
-  waits at the end. The second strip, <em>Launch</em>, is a side-scrolling story level: run through a forest,
-  dodge a UFO, fly a rocket, and dodge a fireball that bursts into fireworks over a city. The third strip,
+  waits at the end. The second strip, <em>Launch</em>, is a long side-scrolling story level: run through a forest
+  (rope swings, a river with an alligator), escape a UFO and its alien, press colored switches in the right
+  order to start the rocket, then fly it to a city while dodging a fireball that bursts into fireworks. The third strip,
   <em>Climb</em>, is a different <strong>mode</strong>: an endless vertical
   platformer played in <strong>portrait</strong>. The comic page is how you pick between them.
 </p>
@@ -164,6 +165,9 @@
 <div class="table-wrap"><table>
   <tr><th>Action</th><th>Desktop</th><th>Phone (landscape)</th></tr>
   <tr><td>Run and jump</td><td colspan="2">Same as above</td></tr>
+  <tr><td>Rope swings</td><td colspan="2">Jump into a rope to grab it; hold the way you're swinging to swing higher; jump to let go</td></tr>
+  <tr><td>Caught in the beam</td><td colspan="2">Press jump again and again to break free</td></tr>
+  <tr><td>Colored switches</td><td colspan="2">Jump or walk onto a button to press it</td></tr>
   <tr><td>Steer the rocket</td><td>Up / W and Down / S</td><td>▲ ▼ buttons, bottom right</td></tr>
   <tr><td>Sound on / off</td><td>M</td><td>Tap the speaker, top right</td></tr>
 </table></div>
@@ -223,7 +227,7 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
     ├── scenes/
     │   ├── ComicPageScene.js       The comic page: strips of panels you jump into
     │   ├── GettingStartedScene.js  The first tutorial panel
-    │   ├── LaunchScene.js          Launch: forest, UFO, rocket flight, fireball, city
+    │   ├── LaunchScene.js          Launch: wires the sections together; checkpoints, rocket, flight, city
     │   └── ClimbScene.js           Climb mode: states, camera, blots, flight, milestones
     └── objects/
         ├── Paper.js        Static background (paper, ruled lines, margin, holes) + lineY()
@@ -239,6 +243,15 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
         ├── ScrollingPaper.js  Climb's endless notebook page
         ├── LongPaper.js    Launch's long sheet (margin and holes only at the start)
         ├── launchArt.js    Launch drawings: rocket, flame, UFO, goo, trees, city, fireball, fireworks
+        ├── Critters.js     Launch's squirrels and birds (they react as you run past)
+        ├── RopeSwings.js   Launch's pendulum ropes over the ravine
+        ├── River.js        Launch's river: lily pads, alligator, fish, drifting log
+        ├── Chase.js        Launch's UFO chase: falling trees, searchlight beam, goo at the pad
+        ├── Alien.js        Launch's alien on foot and its zaps
+        ├── LaunchPuzzle.js Launch's red / blue / green switch puzzle
+        ├── forestArt.js    Drawings: squirrels, birds, ropes, ravine, water, alligator, fish, flags
+        ├── chaseArt.js     Drawings: toppling trees, tractor beam, the alien, zaps
+        ├── puzzleArt.js    Colored-pencil hatching, switches, the clue note, the fence
         ├── CoffeeRing.js   A coffee ring stain
         └── TouchControls.js  On-screen buttons for phones</code></pre>
 
@@ -491,25 +504,41 @@ export function boilRng(timeMs, id) {
 <p>
   A long, side-scrolling level on one long sheet of paper. The camera follows the figure to the right
   and stops at the city. Phases (in <code>LaunchScene</code>): <code>run</code> → <code>launching</code> →
-  <code>flying</code> → <code>landing</code> → <code>done</code>.
+  <code>flying</code> → <code>landing</code> → <code>done</code>, plus <code>oops</code>, the short pause after
+  falling in or getting caught. Each section is its own object; the scene wires them together.
 </p>
 <div class="table-wrap"><table>
-  <tr><th>Beat</th><th>World x</th><th>What happens</th></tr>
-  <tr><td>Forest</td><td>0 – 2600</td><td>Run, jump logs, collect stars. Parallax pencil trees. WALK.</td></tr>
-  <tr><td>UFO chase</td><td>1300 – 3300</td><td>HURRY! A saucer with an alien drops glowing goo after a warning (rays under it).</td></tr>
-  <tr><td>Rocket</td><td>3600</td><td>Climb in, 3 2 1 GO!, lift-off, and the rocket tips over to fly right.</td></tr>
-  <tr><td>Flight</td><td>3600 – 7600</td><td>The rocket flies on its own; steer up and down. Stars and clouds.</td></tr>
-  <tr><td>Fireball</td><td>from 5200</td><td>LOOK OUT! It follows your height, shows a dashed line, then lunges along it. Three times.</td></tr>
-  <tr><td>City</td><td>7600 – 8400</td><td>Land, hop out, the fireball bursts into fireworks, THE END.</td></tr>
+  <tr><th>Section</th><th>World x</th><th>What happens</th></tr>
+  <tr><td>Forest</td><td>170 – 1400</td><td>WALK. Logs, stars, squirrels that run up their trees and birds that fly off as you pass (<code>Critters</code>).</td></tr>
+  <tr><td>Rope swings</td><td>1400 – 1900</td><td>A ravine with two ropes (<code>RopeSwings</code>). Each rope is a real pendulum; hold the way you're swinging to pump it, jump to let go. When you let go decides how far you fly.</td></tr>
+  <tr><td>River</td><td>2400 – 3620</td><td>Lily pads (two sink after you land), an alligator (its back is safe, its snapping head is not), a leaping fish, a drifting log you ride (<code>River</code>). Falling in sends you back to the river's flag.</td></tr>
+  <tr><td>UFO chase</td><td>3700 – 7750</td><td>HURRY! The UFO knocks trees down in front of you, sweeps a searchlight tractor beam at two spots (caught: JUMP, mash jump to break free), then drops off the alien (LOOK OUT!), who boings after you on spring legs firing zaps along the ground (<code>Chase</code>, <code>Alien</code>).</td></tr>
+  <tr><td>Launch pad</td><td>7750 – 8660</td><td>A note on a signpost shows three colored dots and an arrow. Press the red, blue (up on the gantry), and green buttons in that order (<code>LaunchPuzzle</code>); a wrong press buzzes and resets. The order is shuffled every time. The UFO hovers overhead dropping goo. Solved: a green light blinks on the rocket; walk to it to climb in.</td></tr>
+  <tr><td>Rocket and flight</td><td>8200 – 12300</td><td>3 2 1 GO!, lift-off, then steer up and down. From 8950, LOOK OUT!: the fireball follows your height, shows a dashed line, and lunges along it, three times.</td></tr>
+  <tr><td>City</td><td>12300 – 13100</td><td>Land, hop out, the fireball bursts into fireworks, THE END.</td></tr>
 </table></div>
 <p>
-  Getting hit (goo or fireball) is gentle: a one-second stun and a knock back, never a game over.
-  Fire gets a warm fill (<code>COLORS.fire</code>), the only color in this level.
+  <strong>Checkpoints.</strong> Small pencil flags (at the start, the ropes, the river, the chase, and the pad) rise as you pass.
+  Falling into the ravine or the water, the alligator's head, the fish, being pulled into the UFO, or being caught by the alien
+  ends the attempt: a splash or a bump, a quick fade through paper, and you're back at the last flag with a moment of blinking
+  safety. The river and the chase reset when you go back to their start; stars stay collected. Zaps, goo, and the fireball
+  only stun you for a second.
+</p>
+<p>
+  <strong>Moving platforms.</strong> River parts are immovable physics bodies with no gravity, moved by velocity. The drifting
+  log carries whoever stands on it by moving them the same distance each frame (<code>River.update</code>). After letting go of
+  a rope, <code>StickFigure.fling()</code> keeps your sideways speed until you land, so the arrows only nudge you
+  (<code>PLAYER.airSteer</code>).
+</p>
+<p>
+  <strong>Color.</strong> Fire gets a warm fill (<code>COLORS.fire</code>). The puzzle is where colored pencil arrives:
+  <code>COLORS.red</code>, <code>blue</code>, and <code>green</code>, drawn as a colored outline with diagonal hatching
+  (<code>puzzleArt.js</code>). Everything else stays graphite.
 </p>
 <p>
   <strong>Sound</strong> lives in <code>src/audio.js</code> and is made in code with the Web Audio API (no audio
   files): a short music loop that gets busier in the chase and faster in the finale, a fanfare, and sound
-  effects. There is one <code>AudioContext</code>, created on the first tap or keypress (phones require it);
+  effects (splash, chomp, zap, ding, buzz, and more). There is one <code>AudioContext</code>, created on the first tap or keypress (phones require it);
   Phaser's own audio is turned off. The mute setting is saved in <code>localStorage</code>. Only Launch
   plays sound for now. During flight, <code>TouchControls.setLayout('flight')</code> swaps in ▲ ▼ buttons and
   <code>PlayerInput</code> reports <code>up</code> and <code>down</code>.
@@ -600,9 +629,16 @@ export function boilRng(timeMs, id) {
   <tr><td><code>PAPER.lineSpacing</code></td><td>36</td><td>Distance between ruled lines. Moves every platform.</td></tr>
   <tr><td><code>PAPER.marginX</code></td><td>110</td><td>The red margin line and the wall.</td></tr>
   <tr><td><code>TOUCH.buttonRadius / alpha</code></td><td>46 / 0.55</td><td>Size and opacity of the phone buttons.</td></tr>
-  <tr><td><code>LAUNCH.forestEnd / ufoStart / ufoEnd / rocketX / finaleX / cityX / length</code></td><td>2600 / 1300 / 3300 / 3600 / 5200 / 7600 / 8400</td><td>Launch: where each part of the level is.</td></tr>
-  <tr><td><code>LAUNCH.ufoDropEvery / ufoWarning</code></td><td>1.7 / 0.5 s</td><td>Launch: time between goo drops, and the warning before each.</td></tr>
-  <tr><td><code>LAUNCH.stunSeconds</code></td><td>1</td><td>Launch: how long a hit stuns you.</td></tr>
+  <tr><td><code>LAUNCH.checkpoints</code></td><td>170 / 1300 / 2300 / 3700 / 7750</td><td>Launch: the flags you come back to.</td></tr>
+  <tr><td><code>LAUNCH.ravine / ropes / river / ufoStart / padArea / rocketX / finaleX / cityX / length</code></td><td>see config.js</td><td>Launch: where each part of the level is.</td></tr>
+  <tr><td><code>LAUNCH.ropeLength / ropePump / ropeReleaseBoost</code></td><td>200 / 2.4 / 160</td><td>Launch: rope length, how hard holding a direction pumps the swing, the hop when you let go.</td></tr>
+  <tr><td><code>LAUNCH.padSinkDelay / padWobble / padResurface</code></td><td>0.6 / 0.5 / 2.5 s</td><td>Launch: how long a sinking lily pad waits, wobbles, and stays under.</td></tr>
+  <tr><td><code>LAUNCH.gatorSnap / fishEvery / driftSeconds</code></td><td>1.2 / 3 / 4.5 s</td><td>Launch: the alligator's jaw snap, the fish's leaps, the drifting log's trip.</td></tr>
+  <tr><td><code>LAUNCH.fallingTrees / searchlights / alienAt</code></td><td>x positions</td><td>Launch: the chase's steps, in order along the level.</td></tr>
+  <tr><td><code>LAUNCH.beamRise / beamMashDrop / beamMashNeeded</code></td><td>80 / 22 / 7</td><td>Launch: how fast the beam lifts you, how much each jump press pulls you down, presses to break free.</td></tr>
+  <tr><td><code>LAUNCH.alienSpeed / zapEvery / zapSpeed</code></td><td>205 / 1.8 s / 520</td><td>Launch: the alien's running speed (you run 240), time between zaps, zap speed.</td></tr>
+  <tr><td><code>LAUNCH.ufoDropEvery / ufoWarning</code></td><td>2.8 / 0.6 s</td><td>Launch: goo drops over the launch pad, and the warning before each.</td></tr>
+  <tr><td><code>LAUNCH.stunSeconds</code></td><td>1</td><td>Launch: how long a zap, goo, or the fireball stuns you.</td></tr>
   <tr><td><code>LAUNCH.flightSpeed / flightSteer</code></td><td>300 / 280</td><td>Launch: rocket speed to the right, and up/down steering speed.</td></tr>
   <tr><td><code>LAUNCH.fireballLunges / fireballAim / fireballLungeSpeed</code></td><td>3 / 0.8 s / 950</td><td>Launch: fireball lunges, how long the dashed line shows, lunge speed.</td></tr>
   <tr><td><code>LAUNCH.musicTempo</code></td><td>120</td><td>Launch: music beats per minute.</td></tr>

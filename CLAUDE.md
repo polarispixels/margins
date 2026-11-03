@@ -22,10 +22,13 @@ and what's deliberately out of scope for now.
 - The first strip, "Getting Started", has one panel (`GettingStartedScene`): the line
   draws itself as you walk (WALK), the word JUMP is a solid obstacle, and a sleeping dog
   waits at the end. Finished panels show their story art (saved in `progress.js`).
-- The second strip, "Launch" (`LaunchScene`), is a side-scrolling story level on one long
-  sheet: run through a forest, dodge goo from a UFO, fly a rocket (Up/Down to steer), and
-  dodge a fireball that bursts into fireworks over a city. Hits only stun; no game over.
-  It has music and sound effects, made in code (`audio.js`), with a remembered mute button.
+- The second strip, "Launch" (`LaunchScene`), is a long side-scrolling story level on one
+  sheet: a forest with squirrels and birds, rope swings over a ravine, a river crossing
+  (sinking lily pads, an alligator, a fish, a drifting log), a UFO chase (falling trees, a
+  searchlight tractor beam, an alien on foot firing zaps), a red/blue/green switch puzzle
+  at the rocket pad (the first colored pencil), then a rocket flight (Up/Down) past a
+  fireball to a city. Checkpoint flags: falling in or getting caught sends you back to the
+  last one. It has music and sound effects, made in code (`audio.js`), with a remembered mute button.
 - The third strip, "Climb", is a separate **mode** (`ClimbScene`): an endless vertical
   platformer played in **portrait**, with the same walk and jump controls as the story
   levels. Springs and paperclips launch you, ink blots crawl on platforms (stomp them or
@@ -65,7 +68,7 @@ margins/
     ├── scenes/
     │   ├── ComicPageScene.js       # The comic page (start scene): jump into a panel
     │   ├── GettingStartedScene.js  # The first tutorial panel
-    │   ├── LaunchScene.js          # Launch: forest, UFO, rocket, fireball, city (phases)
+    │   ├── LaunchScene.js          # Launch: wires the sections; checkpoints, rocket, flight, city
     │   └── ClimbScene.js           # Climb mode (portrait): states, camera, blots, flight, milestones
     └── objects/
         ├── Paper.js        # Static background: paper, ruled lines, margin, holes; lineY()
@@ -81,6 +84,15 @@ margins/
         ├── ScrollingPaper.js # Climb's endless notebook page
         ├── LongPaper.js    # Launch's long sheet of paper
         ├── launchArt.js    # Launch drawings: rocket, UFO, goo, trees, city, fireball, fireworks
+        ├── Critters.js     # Launch: squirrels and birds
+        ├── RopeSwings.js   # Launch: pendulum ropes over the ravine
+        ├── River.js        # Launch: lily pads, alligator, fish, drifting log (moving bodies)
+        ├── Chase.js        # Launch: the UFO's steps (trees, searchlights, alien), goo at the pad
+        ├── Alien.js        # Launch: the alien on foot and its zaps
+        ├── LaunchPuzzle.js # Launch: the colored switch puzzle and its clue
+        ├── forestArt.js    # Drawings: squirrels, birds, ropes, ravine, water, alligator, fish, flags
+        ├── chaseArt.js     # Drawings: toppling trees, tractor beam, the alien, zaps
+        ├── puzzleArt.js    # Drawings: colored-pencil hatching, switches, clue note, fence
         ├── CoffeeRing.js   # A coffee ring stain
         └── TouchControls.js# On-screen left / right / jump buttons for phones
 ```
@@ -103,12 +115,22 @@ frame) and `jumpHeld`. Design notes: `docs/superpowers/specs/2026-11-02-jump-fee
 
 ## Launch
 
-`LaunchScene` runs phases `run` → `launching` → `flying` → `landing` → `done`. Section
-positions and timings are under `LAUNCH` in `src/config.js`. During flight `TouchControls`
+`LaunchScene` runs phases `run` → `launching` → `flying` → `landing` → `done`, plus `oops`
+(the pause after falling in or getting caught, before fading back to the last checkpoint
+flag). Each section is its own object (`Critters`, `RopeSwings`, `River`, `Chase` with
+`Alien`, `LaunchPuzzle`) that the scene updates and draws; `Chase.update()` returns events
+(words, sounds, stuns, `pulled` / `caught`) for the scene to act on. Section positions and
+timings are under `LAUNCH` in `src/config.js` (smaller layout details sit at the top of each
+object's file). Respawning resets the river, and the chase when going back before it.
+Ropes fling you with `StickFigure.fling()`, which keeps sideways speed until you land
+(`PLAYER.airSteer`). The drifting log carries its rider in `River.update()` (Arcade's own
+moving-platform carry didn't move the rider here). Colors: `COLORS.red/blue/green` are drawn
+as colored pencil (outline + hatching) and only mean the puzzle. During flight `TouchControls`
 switches to its `flight` layout (▲ ▼) and `PlayerInput` reports `up`/`down`. Audio:
 `src/audio.js` creates one `AudioContext` on the first tap or keypress (Phaser's audio is
 off via `audio.noAudio`); mute is saved in `localStorage`. Only Launch plays sound so far.
-Design notes: `docs/superpowers/specs/2026-11-02-launch-design.md`.
+Design notes: `docs/superpowers/specs/2026-11-02-launch-design.md` and
+`2026-11-02-launch-expansion-design.md`.
 
 ## Climb mode
 

@@ -18,6 +18,10 @@ export const COLORS = {
   pencil: 0x3a3a3a,
   ink: 0x1f2a44, // ink blots: the first thing in Climb that isn't pencil, so it means danger
   fire: 0xf0a040, // a warm fill under pencil lines for fire (rocket flame, fireball, fireworks)
+  // Colored pencils: Launch's puzzle switches. Color means something you read.
+  red: 0xd8473f,
+  blue: 0x3a6fd8,
+  green: 0x3c9a4c,
   coffee: 0x8a5a2b,
 };
 
@@ -47,6 +51,7 @@ export const PLAYER = {
   jumpBufferMs: 120, // a jump pressed this long before landing fires on landing
   jumpCutMultiplier: 0.5, // releasing jump while rising multiplies upward speed by this (1 = off)
   gravity: 1400,
+  airSteer: 60, // after a fling (letting go of a rope), arrows only nudge you this much
   lineWidth: 3,
 };
 
@@ -116,36 +121,88 @@ export const CLIMB = {
 };
 
 // Launch: the side-scrolling rocket level. Positions are world x in pixels.
+// Smaller layout details (where each lily pad sits, etc.) live at the top of
+// the file that uses them.
 export const LAUNCH = {
-  length: 8400, // the whole level; the city is at the end
-  forestEnd: 2600,
-  ufoStart: 1300, // the UFO arrives when the figure gets here...
-  ufoEnd: 3300, // ...and zooms away here
-  rocketX: 3600, // the rocket on its launch pad
-  finaleX: 5200, // the fireball arrives when the rocket gets here
-  cityX: 7600, // the skyline starts here
-  landX: 7900, // where the rocket lands
+  length: 13100, // the whole level; the city is at the end
+  startX: 170,
+  // Falling in or getting caught puts you back at the last flag you passed.
+  checkpoints: [170, 1300, 2300, 3700, 7750],
 
-  parallaxFar: 0.3, // background trees and clouds scroll at this fraction of the camera...
-  parallaxNear: 0.6, // ...and the nearer row at this one
+  // ---- Forest ----
+  logs: [650, 1100, 2150, 6600, 7350], // left edges of logs to jump over
+  critterScare: 170, // squirrels and birds react when the figure gets this close
 
+  // ---- Rope swings over a ravine ----
+  ravine: { from: 1400, to: 1900 },
+  ropes: [1520, 1745], // x of each rope's knot on the branch
+  ropeTop: 204, // world y of the branch the ropes hang from
+  ropeLength: 200,
+  ropePump: 2.4, // rad/s² added while holding the way you're swinging
+  ropeMaxAngle: 1.1, // radians from straight down
+  ropeDamping: 0.12, // free ropes slowly settle
+  ropeReleaseBoost: 160, // extra upward speed when you let go
+
+  // ---- River ----
+  river: { from: 2400, to: 3620 },
+  padSinkDelay: 0.6, // seconds standing on a sinking pad before it wobbles...
+  padWobble: 0.5, // ...seconds of wobbling before it sinks...
+  padSinkSpeed: 60, // ...px per second down...
+  padResurface: 2.5, // ...and seconds under water before it floats back up
+  gatorSnap: 1.2, // seconds per jaw snap (open and shut)
+  fishEvery: 3, // seconds between fish leaps
+  fishAir: 1.1, // seconds a leap takes
+  fishHeight: 170, // how high it leaps
+  driftSeconds: 4.5, // the drifting log's trip there and back
+
+  // ---- UFO chase ----
+  ufoStart: 3800, // the UFO arrives when the figure gets here
   ufoHeight: 150, // world y the UFO hovers at
-  ufoDropEvery: 1.7, // seconds between goo drops
-  ufoWarning: 0.5, // seconds of warning rays before a drop
-  gooGravity: 700,
-  stunSeconds: 1, // how long a hit stuns the figure or the rocket (no game over)
+  fallingTrees: [4250, 5500, 7050], // trees the UFO knocks down (x of the trunk)
+  treeTrigger: 520, // a tree is knocked down when the figure is this far from it
+  searchlights: [4700, 5950], // where the UFO stops and sweeps its beam
+  beamSweep: 0.5, // radians each way
+  beamPeriod: 3.2, // seconds for a full sweep there and back
+  beamWidth: 45, // half-width of the beam where it meets the ground
+  beamRise: 80, // px per second you float up when caught
+  beamMashDrop: 22, // px each jump press pulls you back down
+  beamMashNeeded: 7, // presses to break free
+  beamCooldown: 1.5, // seconds the beam stays off after you escape
+  alienAt: 6350, // the alien hops out when the figure gets here
+  alienSpeed: 205, // a little slower than you run
+  alienMaxBehind: 420, // it never falls further behind than this
+  zapEvery: 1.8, // seconds between zaps
+  zapWarning: 0.45, // seconds of sparkling antennae before each zap
+  zapSpeed: 520,
+  zapKnockback: 140,
+  stunSeconds: 1, // how long a zap, goo, or the fireball stuns you
 
+  // ---- Launch pad puzzle ----
+  padArea: 7750, // the alien leaves and the puzzle begins here
+  rocketX: 8200, // the rocket on its launch pad
+  switches: { red: 7960, blue: 8305, green: 8520 }, // x of each colored button
+  clueX: 7860, // the signpost with the clue
+  padWall: 8660, // a fence at the end of the pad
+  ufoDropEvery: 2.8, // seconds between goo drops over the pad
+  ufoWarning: 0.6, // seconds of warning rays before a drop
+  gooGravity: 700,
+
+  // ---- Flight, fireball, city ----
   countdownStep: 0.6, // seconds per "3", "2", "1", "GO!"
   flightSpeed: 300, // the rocket flies right on its own at this speed
   flightSteer: 280, // up/down speed while flying
   flightTop: 70, // world y limits for the rocket
   flightBottom: 470,
-
+  finaleX: 8950, // the fireball arrives when the rocket gets here
+  cityX: 12300, // the skyline starts here
+  landX: 12600, // where the rocket lands
   fireballLunges: 3, // how many times the fireball lunges before the city
-  fireballTrack: 1.4, // seconds following the rocket's height between lunges
+  fireballTrack: 1.0, // seconds following the rocket's height between lunges
   fireballAim: 0.8, // seconds showing the dashed line before a lunge
   fireballLungeSpeed: 950, // px per second faster than the rocket
   fireballRadius: 22,
 
+  parallaxFar: 0.3, // background trees and clouds scroll at this fraction of the camera...
+  parallaxNear: 0.6, // ...and the nearer row at this one
   musicTempo: 120, // beats per minute (the finale plays faster)
 };

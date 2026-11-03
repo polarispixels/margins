@@ -29,6 +29,9 @@ export class StickFigure {
     this.scaleX = 1; // squash and stretch
     this.scaleY = 1;
     this.wasOnFloor = false;
+    // Sideways speed from being flung (e.g. letting go of a rope). It carries you
+    // until you land, with only a little steering, so how you were flung matters.
+    this.carryX = 0;
 
     // Jump feel timers, in milliseconds. While > 0 they count down.
     this.coyoteTimer = 0; // "still allowed to jump" after leaving the floor
@@ -45,9 +48,10 @@ export class StickFigure {
     const ms = dt * 1000;
     this.jumped = false; // true only on the frame he jumps (e.g. for a sound)
 
-    // Walking.
+    // Walking (or flying through the air after a fling, steering a little).
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-    body.setVelocityX(dir * this.runSpeed);
+    if (onFloor) this.carryX = 0;
+    body.setVelocityX(this.carryX ? this.carryX + dir * PLAYER.airSteer : dir * this.runSpeed);
     if (dir !== 0) this.facing = dir;
 
     // Landing: squash short and wide. Done before the jump check so a
@@ -105,6 +109,13 @@ export class StickFigure {
     }
 
     this.onFloor = onFloor;
+  }
+
+  // Fly off sideways at vx (and vy), keeping that speed until landing.
+  fling(vx, vy) {
+    this.carryX = vx;
+    this.body.setVelocity(vx, vy);
+    this.jumpCutAvailable = false;
   }
 
   setScale(x, y) {
