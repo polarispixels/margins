@@ -101,13 +101,13 @@
     <li><a href="#controls">Controls</a></li>
     <li><a href="#running">Running it</a></li>
     <li><a href="#structure">Project structure</a></li>
-    <li><a href="#loop">How a frame works</a></li>
+    <li><a href="#loop">Scenes and the game loop</a></li>
     <li><a href="#boil">The boil</a></li>
     <li><a href="#physics">Physics, platforms &amp; the wall</a></li>
     <li><a href="#figure">The stick figure</a></li>
     <li><a href="#screens">Fitting any screen</a></li>
     <li><a href="#touch">Touch controls</a></li>
-    <li><a href="#level">Editing the level</a></li>
+    <li><a href="#level">The comic page and levels</a></li>
     <li><a href="#tuning">Tuning reference</a></li>
     <li><a href="#deploy">Deployment</a></li>
     <li><a href="#working">Working on Margins</a></li>
@@ -131,8 +131,14 @@
 <p>
   Everything on the page is drawn in pencil and <strong>boils</strong>: lines redraw with a small
   random wobble several times a second, like a flipbook. The light blue ruled lines are platforms,
-  the red margin line on the left is a wall, and reaching the coffee ring stain shows
-  <em>"Page complete"</em> and starts the page over.
+  the red margin line on the left is a wall.
+</p>
+<p>
+  The game opens on a <strong>comic page</strong>: a comic strip drawn in the notebook. Each strip is a row
+  of panels with a title, and each panel is a level. The stick figure walks along the bottom line and
+  <strong>jumps up into a panel</strong> to play it. The first strip, <em>Getting Started</em>, has one panel:
+  a tutorial where the page draws itself as you walk, the word JUMP is the obstacle, and a sleeping dog
+  waits at the end.
 </p>
 <p>
   Margins is a small proof of concept, built for learning and fun. It uses
@@ -176,43 +182,52 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -LocalPort 5173 
 
 <h2 id="structure">Project structure</h2>
 <pre class="tree"><code>margins/
-├── index.html              Page shell, mobile viewport, "turn your phone sideways" hint
+├── index.html              Page shell, mobile viewport, "turn your phone" hint
 ├── vite.config.js          LAN dev server, relative base path for GitHub Pages
+├── docs/PHILOSOPHY.md      Who it's for, words on screen, look and feel. Read first.
+├── docs/superpowers/specs/ Short design specs, one per feature
 ├── public/docs/index.html  This page (copied as-is into dist/docs/)
 ├── .github/workflows/deploy.yml   Build + deploy to GitHub Pages on push to main
 └── src/
-    ├── main.js             Creates the Phaser.Game: size, scaling, physics, input
+    ├── main.js             Creates the Phaser.Game: size, scaling, physics, scene list
     ├── config.js           Every tunable number and color
-    ├── level.js            Platform layout and goal position
-    ├── pencil.js           Seeded random + wobbly pencil line/circle helpers (the boil)
+    ├── pencil.js           Seeded random + wobbly pencil helpers (the boil)
+    ├── input.js            PlayerInput: keyboard + touch → { left, right, jump, jumpHeld }
+    ├── screen.js           Fit any screen shape; paper-colored fades between scenes
+    ├── progress.js         Which panels are finished (remembered on this device)
     ├── scenes/
-    │   └── GameScene.js    Builds the page, reads input, runs the loop, fits the screen
+    │   ├── ComicPageScene.js       The comic page: strips of panels you jump into
+    │   └── GettingStartedScene.js  The first tutorial panel
     └── objects/
-        ├── Paper.js        Static background: paper, ruled lines, margin, hole punches
-        ├── Platforms.js    Static physics bodies + boiling pencil traces
-        ├── StickFigure.js  Player physics, movement, walk cycle, squash and stretch
-        ├── CoffeeRing.js   The goal
+        ├── Paper.js        Static background (paper, ruled lines, margin, holes) + lineY()
+        ├── Platforms.js    Static physics bodies + boiling pencil traces for line segments
+        ├── StickFigure.js  Player physics, movement, jump feel, walk cycle, squash and stretch
+        ├── PencilWord.js   Words written in pencil with a tiny stroke font
+        ├── ComicPanel.js   A comic panel: frame, art, and "did he jump in?"
+        ├── Dog.js          The doodle dog (plus drawDog / drawHeart for panel art)
+        ├── DrawingPencil.js  The pencil that draws the line ahead of the figure
+        ├── CoffeeRing.js   A coffee ring stain
         └── TouchControls.js  On-screen buttons for phones</code></pre>
 
-<h2 id="loop">How a frame works</h2>
-<p>There is a single scene, <code>GameScene</code>. Phaser calls two of its methods:</p>
+<h2 id="loop">Scenes and the game loop</h2>
+<p>
+  Each screen is a Phaser <em>scene</em>, listed in <code>main.js</code>; the first one starts the game.
+  Scenes switch with <code>this.scene.start('Key', data)</code>.
+</p>
+<div class="table-wrap"><table>
+  <tr><th>Scene</th><th>Key</th><th>What it does</th></tr>
+  <tr><td><code>ComicPageScene</code></td><td><code>ComicPage</code></td><td>The comic page. Jumping into a panel zooms the camera into it and starts that panel's level.
+    Coming back (<code>{ returningFrom: panelId }</code>) zooms out and fades in the panel's finished art.</td></tr>
+  <tr><td><code>GettingStartedScene</code></td><td><code>GettingStarted</code></td><td>The first tutorial panel. Waking the dog marks the panel finished and returns to the comic page.</td></tr>
+</table></div>
+<p>Phaser calls two methods on the running scene:</p>
 <ul>
-  <li><strong><code>create()</code></strong> runs when the scene starts (and on every restart). It draws the
-    paper, builds the platforms, goal, player, and touch buttons, adds the player–platform collider,
-    sets up the keyboard, and fits the camera to the screen. Draw order is creation order, so later
-    objects appear on top.</li>
-  <li><strong><code>update(time, delta)</code></strong> runs every frame:
-    <ol>
-      <li><code>readInput()</code> merges keyboard and touch into one <code>{ left, right, jump, jumpHeld }</code> object.
-        <code>jump</code> is true only on the frame the key or button is first pressed; <code>jumpHeld</code> is true
-        for as long as it's held.</li>
-      <li><code>player.update(input, dt)</code> sets velocities and animation state. Arcade physics then
-        moves the body and resolves collisions.</li>
-      <li>If the player's center is inside the coffee ring, <code>completePage()</code> pauses physics,
-        writes "Page complete", and calls <code>scene.restart()</code> two seconds later.</li>
-      <li>Every boiling object redraws itself: platforms, goal, player, touch buttons.</li>
-    </ol>
-  </li>
+  <li><strong><code>create(data)</code></strong> runs when the scene starts. It draws the paper, builds platforms and
+    objects, creates the player and its collider, sets up <code>PlayerInput</code>, and calls
+    <code>watchScreen()</code>. Draw order is creation order, so later objects appear on top.</li>
+  <li><strong><code>update(time, delta)</code></strong> runs every frame: read input with
+    <code>controls.read()</code>, update the player (Arcade physics then moves it and resolves collisions),
+    check the scene's goal, then redraw everything that boils.</li>
 </ul>
 
 <h2 id="boil">The boil</h2>
@@ -348,12 +363,12 @@ export function boilRng(timeMs, id) {
 <ul>
   <li><strong>Wider screens</strong> (most phones are about 19.5:9): the page simply continues to the right.
     The paper and floor are drawn <code>PAGE_MAX_WIDTH</code> (2400 px) wide to cover any screen.</li>
-  <li><strong>Taller screens</strong> (tablets): <code>GameScene.fitToScreen()</code> scrolls the camera up so the
+  <li><strong>Taller screens</strong> (tablets): <code>fitToScreen()</code> in <code>screen.js</code> scrolls the camera up so the
     floor stays at the bottom, and the extra paper appears above the top ruled line as a blank header.</li>
   <li><code>fitToScreen()</code> also resets the physics world bounds. It runs at start and on every Phaser
     <code>resize</code> event (rotation, the mobile address bar hiding, a resized window). The listener is
     removed on scene shutdown so restarts don't stack up duplicates.</li>
-  <li>Anything pinned to the <em>screen</em> rather than the page (the touch buttons, "Page complete") uses
+  <li>Anything pinned to the <em>screen</em> rather than the page (like the touch buttons) uses
     <code>this.scale.width/height</code> and <code>setScrollFactor(0)</code>.</li>
 </ul>
 
@@ -366,22 +381,47 @@ export function boilRng(timeMs, id) {
   <code>main.js</code> sets <code>input.activePointers: 3</code> so several fingers are tracked at once.
 </p>
 <p>
-  The jump button is converted into a single-frame press in <code>GameScene.readInput()</code> (down now,
+  The jump button is converted into a single-frame press in <code>PlayerInput.read()</code> (<code>input.js</code>) (down now,
   not down last frame), so holding it doesn't bunny-hop. Its held state is passed along as
   <code>jumpHeld</code>, so holding ▲ jumps higher, just like holding the key.
 </p>
 
-<h2 id="level">Editing the level</h2>
-<p>The whole layout lives in <code>src/level.js</code>. Platforms are described by ruled line, not pixels:</p>
-<pre><code>platforms: [
-  { line: 9, from: 190, to: 360 },   // line 9 is y = 72 + 9 × 36 = 396
-  { line: 6, from: 400, to: 560 },
-  ...
-],
-goal: { x: 860, line: 2 },</code></pre>
+<h2 id="level">The comic page and levels</h2>
+<h3>Getting Started (the first panel)</h3>
+<ol>
+  <li><strong>The page draws itself.</strong> The floor's pencil trace has a <code>drawnTo</code> x position. A
+    <code>DrawingPencil</code> pushes it forward at 520 px/s, staying 170 px ahead of the figure (faster than he
+    walks, so he never catches it). <strong>WALK</strong> is written at the start and fades once he walks.</li>
+  <li><strong>The word is the obstacle.</strong> <strong>JUMP</strong> is a <code>PencilWord</code> 46 px tall standing on the
+    line. Each letter's box is added with <code>platforms.addSolid()</code>, so walking into the J stops you, and
+    the gaps between letters are narrower than the figure, so he walks across the tops. The letters are written on
+    when the pencil reaches them.</li>
+  <li><strong>A friend at the end.</strong> A sleeping <code>Dog</code> in a coffee ring, revealed when the pencil gets
+    there. Touching him wakes him (hop, wag, heart), marks the panel finished with <code>markComplete()</code>,
+    and fades back to the comic page.</li>
+</ol>
+<p>There's no way to fail: the floor is solid all the way across.</p>
+
+<h3>Words on screen: PencilWord</h3>
 <p>
-  Line 0 is the top ruled line (y = 72), lines are 36 px apart, and the floor is line 12. To add a
-  platform, add one entry; <code>Platforms</code> creates its body and pencil trace automatically.
+  <code>new PencilWord(scene, 'JUMP', x, y, size, opts)</code> writes a word in boiling pencil using a tiny stroke
+  font in <code>PencilWord.js</code>. <code>{ written: false }</code> starts it blank and <code>write(ms)</code> writes it on
+  stroke by stroke; <code>fadeOut(ms)</code> erases it (one word at a time); <code>letterBoxes()</code> gives each letter's
+  box. Only the letters used so far exist; add a letter by sketching its strokes in a 1-unit-tall box.
+  Words must follow <a href="https://github.com/polarispixels/margins/blob/main/docs/PHILOSOPHY.md">the philosophy</a>:
+  one big early-reader word, right when it's needed.
+</p>
+
+<h3>Adding a panel</h3>
+<ol>
+  <li>Write a scene for the level (copy <code>GettingStartedScene</code> for the basics) and add it to the list in <code>main.js</code>.</li>
+  <li>When the level is finished, call <code>markComplete(panelId)</code> and
+    <code>this.scene.start('ComicPage', { returningFrom: panelId })</code>.</li>
+  <li>Add the panel to <code>ComicPageScene</code> and give <code>ComicPanel</code> its art.</li>
+</ol>
+<p>
+  Platforms are described by ruled line, not pixels: <code>{ line: 9, from: 190, to: 360, oneWay: true }</code>.
+  Line 0 is the top ruled line (y = 72, see <code>lineY()</code>), lines are 36 px apart, and the floor is line 12.
 </p>
 <h3>How far can the figure jump?</h3>
 <div class="table-wrap"><table>
@@ -393,8 +433,8 @@ goal: { x: 860, line: 2 },</code></pre>
 </table></div>
 <p>
   Climbing 3 lines uses almost the whole jump and needs jump <em>held</em>, so keep horizontal gaps small
-  (40 px or less) for those. A tap reliably clears one ruled line. The current route: floor → line 9 → line 6 → line 3 → line 2 (goal). Keep the goal reachable
-  inside the 960 × 540 area, since on a 16:9 screen nothing outside it is visible.
+  (40 px or less) for those. A tap reliably clears one ruled line. Keep everything a level needs inside
+  the 960 × 540 area, since on a 16:9 screen nothing outside it is visible.
 </p>
 
 <h2 id="tuning">Tuning reference</h2>
@@ -409,7 +449,6 @@ goal: { x: 860, line: 2 },</code></pre>
   <tr><td><code>PLAYER.jumpBufferMs</code></td><td>120</td><td>How long an early jump press is remembered before landing.</td></tr>
   <tr><td><code>PLAYER.jumpCutMultiplier</code></td><td>0.5</td><td>Upward speed multiplier when jump is released early. 1 turns variable height off; higher makes taps jump higher.</td></tr>
   <tr><td><code>PLAYER.gravity</code></td><td>1400</td><td>Downward acceleration in px/s².</td></tr>
-  <tr><td><code>PLAYER.startX / startY</code></td><td>180 / 400</td><td>Where each page starts.</td></tr>
   <tr><td><code>PAPER.lineSpacing</code></td><td>36</td><td>Distance between ruled lines. Moves every platform.</td></tr>
   <tr><td><code>PAPER.marginX</code></td><td>110</td><td>The red margin line and the wall.</td></tr>
   <tr><td><code>TOUCH.buttonRadius / alpha</code></td><td>46 / 0.55</td><td>Size and opacity of the phone buttons.</td></tr>
@@ -420,7 +459,7 @@ goal: { x: 860, line: 2 },</code></pre>
 <ul>
   <li>Set <code>debug: true</code> under <code>physics.arcade</code> in <code>src/main.js</code> to see the physics boxes.</li>
   <li>In dev mode the game is exposed as <code>window.game</code>. Try
-    <code>game.scene.getScene('GameScene').player</code> in the browser console.</li>
+    <code>game.scene.getScene('GettingStarted').player</code> in the browser console.</li>
 </ul>
 
 <h2 id="deploy">Deployment</h2>

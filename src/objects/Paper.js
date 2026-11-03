@@ -3,11 +3,16 @@
 //
 // The sheet is drawn much bigger than the level so it covers any screen shape:
 // extra width shows up on the right, extra height above the top line
-// (GameScene scrolls the camera so the floor stays at the bottom).
+// (screen.js scrolls the camera so the floor stays at the bottom).
 
 import { HEIGHT, PAGE_MAX_WIDTH, COLORS, PAPER } from '../config.js';
 
 const PAGE_TOP = -HEIGHT; // room for screens up to twice as tall as the level
+
+// The y position of ruled line number `index` (0 = the top ruled line).
+export function lineY(index) {
+  return PAPER.firstLineY + index * PAPER.lineSpacing;
+}
 
 export function drawPaper(scene) {
   const g = scene.add.graphics();

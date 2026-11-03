@@ -17,7 +17,11 @@ and what's deliberately out of scope for now.
 - Everything is drawn in "pencil" and **boils**: lines are redrawn with a small
   random wobble several times a second, like a hand-drawn flipbook.
 - The blue ruled lines are platforms. The red margin line on the left is a wall.
-- Reach the coffee ring stain to finish the page ("Page complete"), which then restarts.
+- The game opens on a **comic page** (`ComicPageScene`): strips of panels drawn in the
+  notebook. Walk along the bottom line and jump up into a panel to play its level.
+- The first strip, "Getting Started", has one panel (`GettingStartedScene`): the line
+  draws itself as you walk (WALK), the word JUMP is a solid obstacle, and a sleeping dog
+  waits at the end. Finished panels show their story art (saved in `progress.js`).
 - This is a learning / for-fun proof of concept. Keep it small.
 
 ## Tech stack
@@ -40,17 +44,24 @@ margins/
 ├── public/docs/index.html  # The docs page; Vite copies public/ into dist/ as-is
 ├── .github/workflows/deploy.yml  # Build + deploy to GitHub Pages on push to main
 └── src/
-    ├── main.js             # Creates the Phaser.Game (size, scaling, physics)
+    ├── main.js             # Creates the Phaser.Game (size, scaling, physics, scene list)
     ├── config.js           # All tunable numbers and colors live here
-    ├── level.js            # Platform layout and goal position for the page
     ├── pencil.js           # Seeded random + wobbly "pencil" drawing helpers (the boil)
+    ├── input.js            # PlayerInput: keyboard + touch -> { left, right, jump, jumpHeld }
+    ├── screen.js           # Fit any screen shape (watchScreen); paper-colored scene fades
+    ├── progress.js         # Finished panels, in localStorage (best effort)
     ├── scenes/
-    │   └── GameScene.js    # Wires everything together; game loop
+    │   ├── ComicPageScene.js       # The comic page (start scene): jump into a panel
+    │   └── GettingStartedScene.js  # The first tutorial panel
     └── objects/
-        ├── Paper.js        # Static background: paper, ruled lines, margin, holes
-        ├── Platforms.js    # Physics bodies + boiling drawing for platforms and the wall
+        ├── Paper.js        # Static background: paper, ruled lines, margin, holes; lineY()
+        ├── Platforms.js    # Line segments (+ addSolid boxes): physics + boiling pencil trace
         ├── StickFigure.js  # Player physics, movement, walk cycle, squash and stretch
-        ├── CoffeeRing.js   # The goal
+        ├── PencilWord.js   # Words in pencil via a tiny stroke font; write-on and fade
+        ├── ComicPanel.js   # A comic panel: frame, art, and the jump-in trigger
+        ├── Dog.js          # The doodle dog; drawDog/drawHeart for panel art
+        ├── DrawingPencil.js# The pencil that draws the line ahead of the figure
+        ├── CoffeeRing.js   # A coffee ring stain
         └── TouchControls.js# On-screen left / right / jump buttons for phones
 ```
 
@@ -66,7 +77,7 @@ reads as a hand-drawn flipbook.
 `StickFigure.update()` adds coyote time, jump buffering, and variable jump height
 (tap = small hop, hold = full jump). Tunables are `coyoteTimeMs`, `jumpBufferMs`,
 and `jumpCutMultiplier` under `PLAYER` in `src/config.js`. Input arrives as
-`{ left, right, jump, jumpHeld }` from `GameScene.readInput()`, built from both
+`{ left, right, jump, jumpHeld }` from `PlayerInput.read()` (`src/input.js`), built from both
 keyboard and touch, so any new input source must fill in both `jump` (pressed this
 frame) and `jumpHeld`. Design notes: `docs/superpowers/specs/2026-11-02-jump-feel-design.md`.
 
@@ -100,7 +111,8 @@ The WSL IP can change after a reboot; rerun the portproxy line if it stops worki
 ## Debugging tips
 
 - In dev mode the game is exposed as `window.game`. In the browser console try
-  `game.scene.getScene('GameScene').player`.
+  `game.scene.getScene('GettingStarted').player`. To replay the tutorial as new,
+  run `localStorage.clear()` and reload.
 - Set `debug: true` under `physics.arcade` in `src/main.js` to see physics boxes.
 
 ## Conventions
@@ -109,7 +121,12 @@ The WSL IP can change after a reboot; rerun the portproxy line if it stops worki
   that is always visible; `Phaser.Scale.EXPAND` fills the rest of the screen with
   more page (extra width on the right, extra height above). Anything pinned to the
   screen (touch buttons, messages) uses `this.scale.width/height` and `setScrollFactor(0)`.
-- Put magic numbers in `src/config.js`, not scattered through the code.
+- Put magic numbers in `src/config.js`, not scattered through the code. (Layout numbers
+  that only make sense for one scene, like where a panel sits, can live at the top of
+  that scene's file.)
+- Every scene calls `watchScreen(this)` and uses `PlayerInput`, so screen fitting and
+  controls behave the same everywhere. On-screen words use `PencilWord` and must pass
+  the philosophy's "Jack test".
 - Keep each file focused on one thing, and keep code readable for a learner:
   short functions, clear names, a comment wherever the "why" isn't obvious.
 - When behavior, controls, structure, or tuning defaults change, update the docs

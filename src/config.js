@@ -1,7 +1,7 @@
 // Every tunable number and color in one place. Tweak these to change the feel.
 
 // The level is designed for this area, which is always fully visible (16:9 landscape).
-// Screens of other shapes see extra page beyond it; see GameScene.fitToScreen().
+// Screens of other shapes see extra page beyond it; see screen.js.
 export const WIDTH = 960;
 export const HEIGHT = 540;
 
@@ -36,8 +36,6 @@ export const BOIL = {
 };
 
 export const PLAYER = {
-  startX: 180,
-  startY: 400,
   bodyWidth: 20,
   bodyHeight: 60,
   runSpeed: 240, // px per second

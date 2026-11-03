@@ -2,7 +2,8 @@
 
 A stick figure lives on a sheet of lined notebook paper. Everything is drawn in
 pencil and "boils" like a hand-drawn flipbook. The blue ruled lines are
-platforms, the red margin line is a wall, and the coffee ring stain is the goal.
+platforms and the red margin line is a wall. Levels are panels in a comic strip
+drawn in the notebook: jump up into a panel to play it.
 
 A small proof of concept built with Phaser 4, Vite, and plain JavaScript. No
 image assets: everything is drawn procedurally.

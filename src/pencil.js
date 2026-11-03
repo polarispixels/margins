@@ -73,6 +73,11 @@ export function pencilLine(g, rng, x1, y1, x2, y2, opts = {}) {
 
 // Draw a wobbly circle as a closed loop of jittered points.
 export function pencilCircle(g, rng, cx, cy, radius, opts = {}) {
+  pencilEllipse(g, rng, cx, cy, radius, radius, opts);
+}
+
+// Draw a wobbly ellipse (an oval) with radii rx and ry.
+export function pencilEllipse(g, rng, cx, cy, rx, ry, opts = {}) {
   const {
     color = 0x333333,
     width = 2,
@@ -87,16 +92,41 @@ export function pencilCircle(g, rng, cx, cy, radius, opts = {}) {
     g.beginPath();
     // Start at a random angle so the "seam" isn't always in the same spot.
     const start = rng() * Math.PI * 2;
-    const firstRadius = radius + jitter(rng, wobble);
+    const firstOffset = jitter(rng, wobble);
     for (let i = 0; i <= points; i++) {
       const angle = start + (i / points) * Math.PI * 2;
-      // Reuse the first point's radius on the last point so the loop closes.
-      const r = i === 0 || i === points ? firstRadius : radius + jitter(rng, wobble);
-      const x = cx + Math.cos(angle) * r;
-      const y = cy + Math.sin(angle) * r;
+      // Reuse the first point's offset on the last point so the loop closes.
+      const offset = i === 0 || i === points ? firstOffset : jitter(rng, wobble);
+      const x = cx + Math.cos(angle) * (rx + offset);
+      const y = cy + Math.sin(angle) * (ry + offset);
       if (i === 0) g.moveTo(x, y);
       else g.lineTo(x, y);
     }
+    g.strokePath();
+  }
+}
+
+// Draw a wobbly path through a list of points: [{ x, y }, ...].
+// Each corner is jittered once, so the path stays connected at the corners.
+export function pencilPolyline(g, rng, points, opts = {}) {
+  const {
+    color = 0x333333,
+    width = 2,
+    alpha = 0.9,
+    wobble = BOIL.wobble,
+    passes = 2,
+  } = opts;
+  if (points.length < 2) return;
+
+  for (let p = 0; p < passes; p++) {
+    g.lineStyle(p === 0 ? width : width * 0.6, color, p === 0 ? alpha : alpha * 0.5);
+    g.beginPath();
+    points.forEach((pt, i) => {
+      const x = pt.x + jitter(rng, wobble * 0.6);
+      const y = pt.y + jitter(rng, wobble * 0.6);
+      if (i === 0) g.moveTo(x, y);
+      else g.lineTo(x, y);
+    });
     g.strokePath();
   }
 }

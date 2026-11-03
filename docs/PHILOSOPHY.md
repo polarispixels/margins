@@ -89,7 +89,7 @@ play, never like a quiz.
 simple, joyful words of *Go, Dog. Go!*) but never their characters, text, or
 artwork. Make up our own dogs.
 
-## Navigation: the comic page *(planned)*
+## Navigation: the comic page
 
 Levels are chosen from a page that looks like the **newspaper comics section**:
 
@@ -101,6 +101,9 @@ Levels are chosen from a page that looks like the **newspaper comics section**:
 The first strip is **"Getting Started"**: basic tutorials that teach how to move
 and do things, the way good games teach their controls. More advanced controls and
 challenges can come in later strips.
+
+When a panel is finished, it shows a little drawing of what happened, so the comic
+page tells the story of what you've played.
 
 ## Not yet (scope discipline)
 
@@ -115,6 +118,9 @@ ourselves:
 - Obstacles and challenges beyond the tutorials, and more advanced controls
 - Choose-your-own-adventure: story choices that branch to different panels or strips
 - Installing to a phone or tablet home screen, and other ways to distribute it
+- The original staircase level (climb the ruled lines to a coffee ring), retired when
+  the comic page arrived; it's in git history and could come back as a panel
+- The dog following the figure into later strips; counting stars
 
 Add new "someday" ideas to this list instead of building them. Move something out
 of this list only when we decide to work on it.
