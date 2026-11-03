@@ -11,10 +11,15 @@ import { drawMonkey } from './animalArt.js';
 
 const ARC_MS = 700; // default time for bounce / swing / drop steps
 const LICK_MS = 1200; // how long the cat licks its paw after calling
+const HANDS_ABOVE = 50; // a hanging monkey's hands are this far above its (x, y)
 const HEART_MS = 600; // how long the celebration heart takes to rise
 
 export class Guide {
-  // steps: [{ to: {x, y}, move: 'walk' | 'climb' | 'bounce' | 'swing' | 'drop', ms? }]
+  // steps: [{ to: {x, y}, move: 'walk' | 'climb' | 'bounce' | 'swing' | 'drop', ms?, auto?,
+  //           pivot?, length? }]
+  // A 'swing' with a `pivot` (the rope's knot) and `length` rides a real pendulum arc, and
+  // `current.theta` tells the scene how far the rope tilts. An `auto` step starts the moment
+  // the one before it ends (a second rope in a row), without waiting for the player.
   constructor(scene, { draw, x, y, steps = [], sound }) {
     this.scene = scene;
     this.drawFn = draw;
@@ -49,7 +54,14 @@ export class Guide {
     if (this.lastClose === null) this.lastClose = time;
     if (this.steps.length === 0) return;
 
-    if (Math.hypot(target.x - this.px, target.y - this.py) < LEARN.guideWaitDistance) {
+    if (this.steps[0].auto) {
+      this.begin(this.steps.shift());
+      return;
+    }
+    // Come on when you are close, or when you have run past it along the same line.
+    const close = Math.hypot(target.x - this.px, target.y - this.py) < LEARN.guideWaitDistance;
+    const passed = target.x > this.px + LEARN.guideWaitDistance && Math.abs(target.y - this.py) < 120;
+    if (close || passed) {
       this.sound();
       this.begin(this.steps.shift());
     } else if (time - this.lastClose > LEARN.guideCallMs) {
@@ -76,15 +88,33 @@ export class Guide {
     const { from, step } = c;
     this.px = from.x + (step.to.x - from.x) * c.t;
     this.py = from.y + (step.to.y - from.y) * c.t;
-    // Arcs: bounce hops up, swing dips down then up, drop falls (speeding up).
+    // Arcs: bounce hops up, a plain swing dips down then up, drop falls (speeding up).
     const bump = Math.sin(c.t * Math.PI);
     if (step.move === 'bounce') this.py -= bump * 50;
-    if (step.move === 'swing') this.py -= bump * 25;
+    if (step.move === 'swing') this.py += bump * 25;
+    if (step.move === 'swing' && step.pivot) this.swingOnRope(c);
     if (step.move === 'drop') this.py = from.y + (step.to.y - from.y) * c.t * c.t;
     if (c.t >= 1) {
       this.current = null;
       this.lastClose = null; // start the "waiting" clock fresh at the new spot
     }
+  }
+
+  // Ride a pendulum: the hands stay `length` from the rope's knot while the rope swings
+  // from the tilt that matches the start to the tilt that matches the end. The first and
+  // last moments blend with the plain straight path, so the monkey hops onto the rope and
+  // off it again instead of popping.
+  swingOnRope(c) {
+    const { pivot, length, to } = c.step;
+    const tilt = (x) => Math.asin(Math.max(-0.89, Math.min(0.89, (x - pivot.x) / length)));
+    const theta = tilt(c.from.x) + (tilt(to.x) - tilt(c.from.x)) * c.t;
+    const edge = Math.min(1, c.t / 0.15, (1 - c.t) / 0.15);
+    const blend = edge * edge * (3 - 2 * edge); // smoothstep
+    const armX = pivot.x + Math.sin(theta) * length;
+    const armY = pivot.y + Math.cos(theta) * length + HANDS_ABOVE;
+    this.px += (armX - this.px) * blend;
+    this.py += (armY - this.py) * blend;
+    c.theta = theta;
   }
 
   // Cheer: a heart rises and the animal calls.
@@ -114,7 +144,7 @@ export class Guide {
     const rng = boilRng(time, 70);
     const pose = this.poseFor(time);
     // A swinging monkey hangs by its hands, held a little above where it will land.
-    const y = pose === 'hang' ? this.py - 50 : this.py;
+    const y = pose === 'hang' ? this.py - HANDS_ABOVE : this.py;
     this.drawFn(g, rng, this.px, y, { pose, facing: this.facing, time });
     if (this.celebratedAt !== null) {
       const since = time - this.celebratedAt;

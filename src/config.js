@@ -306,4 +306,10 @@ export const LEARN = {
   // carry you a little past them (apex = speed squared / (2 * gravity)) and you drop back on.
   springSpeed: 950,        // apex ~322 px, about 9 lines: lands on the line 7 lines up
   paperclipSpeed: 1150,    // apex ~472 px, about 13 lines: lands on the line 11 lines up
+  // SWING: ropes hang from a branch this high with this length (LAUNCH's pump, damping and
+  // release numbers are shared). Falling into a gap puts you back at its near edge.
+  swingRopeTop: 204,
+  swingRopeLength: 200,
+  swingRopeCalm: 1.8,      // extra settling for free ropes, per second
+  swingFallResetMs: 800,
 };
