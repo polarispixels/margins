@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<!-- Margins: the stick figure jumping on notebook paper. -->
+<defs><clipPath id="page"><rect width="64" height="64" rx="10"/></clipPath></defs>
+<g clip-path="url(#page)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<rect width="64" height="64" fill="#f7f3e8"/>
+<polyline stroke="#9cc3e6" stroke-width="2.5" points="0,21 30,20.5 64,21"/>
+<polyline stroke="#9cc3e6" stroke-width="2.5" points="0,38 34,38.5 64,38"/>
+<polyline stroke="#9cc3e6" stroke-width="4" points="0,55 28,54.5 64,55"/>
+<polyline stroke="#e08080" stroke-width="3" points="12,0 12.5,30 12,64"/>
+<polyline stroke="#3a3a3a" stroke-width="4.5" points="38,21 37.5,28 35,35"/>
+<polyline stroke="#3a3a3a" stroke-width="4.5" points="37,25 31,23 25,15"/>
+<polyline stroke="#3a3a3a" stroke-width="4.5" points="37,25 44,24 50,17"/>
+<polyline stroke="#3a3a3a" stroke-width="4.5" points="35,35 27,38 25,47"/>
+<polyline stroke="#3a3a3a" stroke-width="4.5" points="35,35 44,40 51,35"/>
+<circle cx="38.5" cy="13" r="6.5" stroke="#3a3a3a" stroke-width="4.5"/>
+</g>
+</svg>

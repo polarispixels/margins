@@ -72,6 +72,7 @@ margins/
 ├── docs/superpowers/specs/ # Short design specs, one per feature
 ├── docs/reading-framework.md # The reading game's plan; Read mode builds phases 1 and 2
 ├── public/docs/index.html  # The docs page; Vite copies public/ into dist/ as-is
+├── public/favicon.*, apple-touch-icon.png # The icon: the figure jumping on notebook paper
 ├── .github/workflows/deploy.yml  # Build + deploy to GitHub Pages on push to main
 └── src/
     ├── main.js             # Creates the Phaser.Game (size, scaling, physics, scene list)
