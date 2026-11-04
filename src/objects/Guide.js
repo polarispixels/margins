@@ -11,7 +11,7 @@ import { drawMonkey } from './animalArt.js';
 
 const ARC_MS = 700; // default time for bounce / swing / drop steps
 const LICK_MS = 1200; // how long the cat licks its paw after calling
-const HANDS_ABOVE = 50; // a hanging monkey's hands are this far above its (x, y)
+export const HANDS_ABOVE = 50; // a hanging monkey's hands are this far above its (x, y)
 const HEART_MS = 600; // how long the celebration heart takes to rise
 
 export class Guide {
@@ -58,9 +58,13 @@ export class Guide {
       this.begin(this.steps.shift());
       return;
     }
-    // Come on when you are close, or when you have run past it along the same line.
+    // Come on when you are close, or when you have run past it along the same line, in the
+    // direction it is about to travel. (A step with no sideways travel, like a climb, can't
+    // be "passed": the player has to come up to the guide.)
     const close = Math.hypot(target.x - this.px, target.y - this.py) < LEARN.guideWaitDistance;
-    const passed = target.x > this.px + LEARN.guideWaitDistance && Math.abs(target.y - this.py) < 120;
+    const travel = this.steps[0].to.x - this.px;
+    const ahead = Math.abs(travel) < 20 ? false : Math.sign(travel) * (target.x - this.px) > LEARN.guideWaitDistance;
+    const passed = ahead && Math.abs(target.y - this.py) < 120;
     if (close || passed) {
       this.sound();
       this.begin(this.steps.shift());
@@ -100,10 +104,10 @@ export class Guide {
     }
   }
 
-  // Ride a pendulum: the hands stay `length` from the rope's knot while the rope swings
-  // from the tilt that matches the start to the tilt that matches the end. The first and
-  // last moments blend with the plain straight path, so the monkey hops onto the rope and
-  // off it again instead of popping.
+  // Ride a pendulum: the hands stay `length` from the rope's knot while the rope's tilt
+  // goes steadily from the angle that matches the start to the angle that matches the end.
+  // (Not a true pendulum swing.) The first and last 15% of the step blend with the plain
+  // straight path, so the monkey hops onto the rope and off it again instead of popping.
   swingOnRope(c) {
     const { pivot, length, to } = c.step;
     const tilt = (x) => Math.asin(Math.max(-0.89, Math.min(0.89, (x - pivot.x) / length)));

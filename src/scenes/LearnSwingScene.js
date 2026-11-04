@@ -15,7 +15,7 @@ import { LongPaper } from '../objects/LongPaper.js';
 import { Platforms } from '../objects/Platforms.js';
 import { StickFigure } from '../objects/StickFigure.js';
 import { RopeSwings } from '../objects/RopeSwings.js';
-import { Guide } from '../objects/Guide.js';
+import { Guide, HANDS_ABOVE } from '../objects/Guide.js';
 import { drawMonkey } from '../objects/animalArt.js';
 import { drawBranch } from '../objects/forestArt.js';
 import { PencilWord } from '../objects/PencilWord.js';
@@ -37,12 +37,11 @@ const FALL_DEPTH = 90; // this far below the line counts as fallen in
 const PLAYER_HALF = 30;
 const START_X = 230;
 const MONKEY_START = 400;
-const ROPE_HANDS_Y = 50; // a hanging monkey's hands are this far above its (x, y)
 
 // The gaps in the line, and the ropes over them (world x). Each gap is a new beat.
 const GAPS = [
   { from: 600, to: 800, ropes: [700] }, // 1. small: one rope
-  { from: 1250, to: 1630, ropes: [1360] }, // 2. wide: pump
+  { from: 1250, to: 1580, ropes: [1350] }, // 2. wide: pump
   { from: 2150, to: 2650, ropes: [2260, 2500] }, // 3. two ropes in a row
   { from: 3100, to: 3400, ropes: [3210] }, // 4. the last swing
 ];
@@ -120,8 +119,11 @@ export class LearnSwingScene extends Phaser.Scene {
       gap.ropes.forEach((ropeX, i) => {
         // Between two ropes the monkey hangs where both ropes tilt toward it.
         const halfway = (ropeX + (gap.ropes[i + 1] ?? ropeX)) / 2;
-        const handsY = top + Math.sqrt(length ** 2 - ((gap.ropes[1] ?? 0) - gap.ropes[0]) ** 2 / 4);
-        const to = i === lastRope ? { x: gap.to + 15, y: floor } : { x: halfway, y: handsY + ROPE_HANDS_Y };
+        let to = { x: gap.to + 15, y: floor };
+        if (i !== lastRope) {
+          const handsY = top + Math.sqrt(length ** 2 - ((gap.ropes[1] - gap.ropes[0]) / 2) ** 2);
+          to = { x: halfway, y: handsY + HANDS_ABOVE };
+        }
         steps.push({
           move: 'swing',
           rope: ropeNumbers[i],

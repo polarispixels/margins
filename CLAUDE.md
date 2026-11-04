@@ -186,7 +186,7 @@ moving-platform carry didn't move the rider here). Colors: `COLORS.red/blue/gree
 as colored pencil (outline + hatching) and only mean the puzzle. During flight `TouchControls`
 switches to its `flight` layout (▲ ▼) and `PlayerInput` reports `up`/`down`. Audio:
 `src/audio.js` creates one `AudioContext` on the first tap or keypress (Phaser's audio is
-off via `audio.noAudio`); mute is saved in `localStorage`. Only Launch plays sound so far.
+off via `audio.noAudio`); mute is saved in `localStorage`. Launch, CLIMB, and SWING play sound (the guides' meow, purr, and ooh are in `audio.js` too).
 Design notes: `docs/superpowers/specs/2026-11-02-launch-design.md` and
 `2026-11-02-launch-expansion-design.md`.
 

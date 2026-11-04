@@ -587,8 +587,8 @@ export function boilRng(timeMs, id) {
   <strong>Sound</strong> lives in <code>src/audio.js</code> and is made in code with the Web Audio API (no audio
   files): a short music loop that gets busier in the chase and faster in the finale, a fanfare, and sound
   effects (splash, chomp, zap, ding, buzz, and more). There is one <code>AudioContext</code>, created on the first tap or keypress (phones require it);
-  Phaser's own audio is turned off. The mute setting is saved in <code>localStorage</code>. Only Launch
-  plays sound for now. During flight, <code>TouchControls.setLayout('flight')</code> swaps in ▲ ▼ buttons and
+  Phaser's own audio is turned off. The mute setting is saved in <code>localStorage</code>. Launch, CLIMB, and
+  SWING play sound (the cat's meow and purr, the monkey's ooh). During flight, <code>TouchControls.setLayout('flight')</code> swaps in ▲ ▼ buttons and
   <code>PlayerInput</code> reports <code>up</code> and <code>down</code>.
 </p>
 
